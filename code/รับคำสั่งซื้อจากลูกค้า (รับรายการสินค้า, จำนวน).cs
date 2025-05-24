@@ -838,4 +838,608 @@ public class Program
         pos.EndShift();
     }
 }
+
+Sure, here are another 50 logic points for a POS system, building on the previous list, with brief C# code concepts.
+
+---
+
+### Additional POS Logic and Features (51-100)
+
+```csharp
+// Continuing from the previous PosSystem class
+
+// 51. ระบบจัดการชุดสินค้า (Bundle Products) - เช่น ซื้อกาแฟ+ขนมปังได้ราคาพิเศษ
+public class ProductBundle
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public List<int> ProductIdsInBundle { get; set; } // IDs of products in the bundle
+    public decimal BundlePrice { get; set; }
+}
+
+public void AddBundleToOrder(int bundleId, decimal quantity = 1)
+{
+    var bundle = _productBundles.FirstOrDefault(b => b.Id == bundleId);
+    if (bundle == null)
+    {
+        Console.WriteLine($"Bundle {bundleId} not found.");
+        return;
+    }
+
+    // Check stock for all products in the bundle
+    foreach (var productId in bundle.ProductIdsInBundle)
+    {
+        var product = _products.FirstOrDefault(p => p.Id == productId);
+        if (product == null || product.StockQuantity < quantity)
+        {
+            Console.WriteLine($"Not enough stock for product in bundle: {product?.Name ?? "N/A"}");
+            return;
+        }
+    }
+
+    // Add a special "bundle" item to the cart, or add individual items with a discount applied
+    // For simplicity, we'll add a single item representing the bundle.
+    // In a real system, you might add the individual items and adjust their prices.
+    var bundleProduct = new Product { Id = bundle.Id, Name = bundle.Name, UnitPrice = bundle.BundlePrice, StockQuantity = (int)quantity, UnitOfMeasure = "Bundle" };
+    CurrentOrder.Items.Add(new CartItem { Product = bundleProduct, Quantity = quantity, ItemPrice = bundle.BundlePrice * quantity });
+
+    // Deduct stock for individual items within the bundle
+    foreach (var productId in bundle.ProductIdsInBundle)
+    {
+        var product = _products.FirstOrDefault(p => p.Id == productId);
+        if (product != null)
+        {
+            product.StockQuantity -= (int)quantity;
+        }
+    }
+    CalculateOrderTotals();
+    Console.WriteLine($"Bundle '{bundle.Name}' added to cart.");
+}
+
+// 52. รองรับการใช้งานเครื่องชั่งน้ำหนัก (Weight Scale Integration)
+// This requires hardware integration, often via serial port or network.
+public decimal GetWeightFromScale()
+{
+    // Mock implementation
+    Console.WriteLine("Please place item on scale and press enter (simulating weight reading).");
+    // In real-world, this would involve reading from a serial port or SDK
+    // return _weightScaleService.ReadWeight();
+    return 1.5m; // Example weight in KG
+}
+
+// 53. ระบบจัดการค่าธรรมเนียมบัตรเครดิต (Credit Card Surcharge)
+public decimal CalculateCreditCardSurcharge(decimal amount)
+{
+    const decimal SurchargeRate = 0.03m; // 3% surcharge
+    return amount * SurchargeRate;
+}
+
+// 54. ระบบสำรองข้อมูลและกู้คืน (Backup & Restore)
+// Typically handled by database management system (e.g., SQL Server backup, SQLite file copy)
+public void PerformDatabaseBackup(string path)
+{
+    // Example: copy SQLite file or call SQL Server backup command
+    Console.WriteLine($"Database backup initiated to {path}");
+}
+
+// 55. ระบบจัดการผู้จัดจำหน่าย (Supplier Management)
+public class Supplier
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public string ContactPerson { get; set; }
+    public string Phone { get; set; }
+}
+private List<Supplier> _suppliers = new List<Supplier>();
+public void AddSupplier(Supplier supplier) { _suppliers.Add(supplier); }
+public void UpdateSupplier(Supplier supplier) { /* Find and update */ }
+
+// 56. ระบบบันทึกการรับสินค้าเข้าสต็อก (Goods Receipt)
+public void RecordGoodsReceipt(int productId, int quantity, int supplierId)
+{
+    var product = _products.FirstOrDefault(p => p.Id == productId);
+    var supplier = _suppliers.FirstOrDefault(s => s.Id == supplierId);
+    if (product != null && supplier != null)
+    {
+        product.StockQuantity += quantity;
+        Console.WriteLine($"Received {quantity} of {product.Name} from {supplier.Name}. New stock: {product.StockQuantity}");
+        // Log this transaction
+    }
+}
+
+// 57. ระบบจัดการการคืนสินค้าให้ผู้จัดจำหน่าย (Return to Supplier)
+public void ReturnToSupplier(int productId, int quantity, int supplierId, string reason)
+{
+    var product = _products.FirstOrDefault(p => p.Id == productId);
+    var supplier = _suppliers.FirstOrDefault(s => s.Id == supplierId);
+    if (product != null && supplier != null && product.StockQuantity >= quantity)
+    {
+        product.StockQuantity -= quantity;
+        Console.WriteLine($"Returned {quantity} of {product.Name} to {supplier.Name} due to {reason}. Remaining stock: {product.StockQuantity}");
+        // Log this transaction
+    }
+}
+
+// 58. ระบบจัดการภาษีอื่น ๆ (Other Tax Handling) - เช่น ภาษีสรรพสามิต
+// Requires a more flexible tax model, e.g., TaxRule per product/category
+public decimal CalculateExciseTax(Product product, decimal quantity)
+{
+    // Example: Alcohol may have excise tax
+    if (product.Category == "Alcohol")
+    {
+        return product.UnitPrice * quantity * 0.15m; // 15% excise tax
+    }
+    return 0;
+}
+
+// 59. ระบบจำกัดสิทธิ์การเข้าถึงข้อมูล (Data Access Control)
+// (Implemented at a higher level, e.g., in service layer using UserRole)
+// public bool CanViewSalesReports(User user) { return user.Role == UserRole.Admin || user.Role == UserRole.Manager; }
+
+// 60. ระบบจัดการราคาแบบหลายระดับ (Tiered Pricing) - เช่น ราคาส่ง, ราคาปลีก
+public decimal GetTieredPrice(Product product, decimal quantity)
+{
+    if (quantity >= 100) return product.UnitPrice * 0.80m; // 20% discount for 100+
+    if (quantity >= 50) return product.UnitPrice * 0.90m;  // 10% discount for 50+
+    return product.UnitPrice;
+}
+
+// 61. ระบบแจ้งเตือนเมื่อยอดขายถึงเป้า (Sales Target Alert)
+public void CheckSalesTarget(decimal dailyTarget)
+{
+    var todaySales = _orders.Where(o => o.OrderDate.Date == DateTime.Today && o.Status == OrderStatus.Completed).Sum(o => o.NetAmount);
+    if (todaySales >= dailyTarget)
+    {
+        Console.WriteLine($"Daily sales target of {dailyTarget:C} reached! Current sales: {todaySales:C}");
+    }
+}
+
+// 62. ระบบแสดงผลบนจอแสดงผลลูกค้า (Customer Facing Display)
+// (Requires integration with a secondary display, often a separate thread/process updating the display)
+public void UpdateCustomerDisplay(string message)
+{
+    Console.WriteLine($"[Customer Display]: {message}");
+}
+
+// 63. ระบบควบคุมลิ้นชักเก็บเงิน (Cash Drawer Control)
+// (Requires hardware integration, e.g., sending a pulse signal via serial/USB printer)
+public void OpenCashDrawer()
+{
+    Console.WriteLine("Cash drawer opened.");
+    // Example: _cashDrawerService.Open();
+}
+
+// 64. ระบบจัดการสถานะการชำระเงิน (Payment Status Management) - Pending, Approved, Failed
+// (Already partially covered by OrderStatus.Completed, but can be more granular for payment gateway interactions)
+// public void UpdatePaymentStatus(int orderId, string status) { /* ... */ }
+
+// 65. ระบบพิมพ์ป้ายราคา/บาร์โค้ดสินค้า (Label/Barcode Printing)
+// (Requires integration with label printer SDKs or generating print-ready files)
+public void PrintProductLabel(Product product, int quantity)
+{
+    Console.WriteLine($"Printing {quantity} labels for Product: {product.Name} (Barcode: {product.Code})");
+}
+
+// 66. ระบบบันทึกการเคลื่อนไหวสต็อก (Stock Movement Log) - เช่น รับเข้า, ขายออก, โอนย้าย, ปรับปรุง
+public class StockMovement
+{
+    public int Id { get; set; }
+    public DateTime Timestamp { get; set; }
+    public int ProductId { get; set; }
+    public string MovementType { get; set; } // e.g., "Sale", "Receipt", "Adjustment", "Transfer"
+    public int QuantityChange { get; set; }
+    public string Reference { get; set; } // Order ID, PO ID etc.
+    public int UserId { get; set; }
+}
+private List<StockMovement> _stockMovements = new List<StockMovement>();
+public void LogStockMovement(int productId, string type, int quantityChange, string reference, int userId)
+{
+    _stockMovements.Add(new StockMovement
+    {
+        Id = _stockMovements.Count + 1,
+        Timestamp = DateTime.Now,
+        ProductId = productId,
+        MovementType = type,
+        QuantityChange = quantityChange,
+        Reference = reference,
+        UserId = userId
+    });
+}
+
+// 67. ระบบจัดการค่าใช้จ่ายหน้าร้าน (Petty Cash/Expense Management)
+public class PettyCashTransaction
+{
+    public int Id { get; set; }
+    public DateTime Date { get; set; }
+    public string Description { get; set; }
+    public decimal Amount { get; set; }
+    public string Type { get; set; } // "Expense", "Income"
+    public int UserId { get; set; }
+}
+private List<PettyCashTransaction> _pettyCashTransactions = new List<PettyCashTransaction>();
+public void AddPettyCashExpense(string description, decimal amount, int userId)
+{
+    _pettyCashTransactions.Add(new PettyCashTransaction
+    {
+        Id = _pettyCashTransactions.Count + 1,
+        Date = DateTime.Now,
+        Description = description,
+        Amount = amount,
+        Type = "Expense",
+        UserId = userId
+    });
+}
+
+// 68. ระบบอนุมัติการทำรายการพิเศษ (Override/Approval Workflow) - เช่น การลดราคามากเกินไป, คืนเงิน
+public bool RequestOverrideApproval(User requestingUser, User manager, string action, decimal amount)
+{
+    // In a real system, this would involve sending a notification to a manager,
+    // who would then approve/deny via their interface.
+    Console.WriteLine($"User {requestingUser.Username} requesting approval for '{action}' of {amount:C}. Awaiting manager approval...");
+    // For simulation, assume auto-approved by Admin
+    return manager.Role == UserRole.Admin || manager.Role == UserRole.Manager;
+}
+
+// 69. ระบบเชื่อมต่อกับเครื่องรูดบัตร (EDC Terminal Integration)
+// (Similar to 46, specific to various EDC providers and their APIs/SDKs)
+// public bool InitiateEDCPayment(decimal amount) { /* ... */ return true; }
+
+// 70. ระบบรายงานวิเคราะห์ข้อมูลการขาย (Sales Analytics Dashboard)
+// (Requires aggregation of sales data, often using a reporting tool or custom UI)
+public Dictionary<string, decimal> GetSalesByDayOfWeek()
+{
+    return _orders.Where(o => o.Status == OrderStatus.Completed)
+                  .GroupBy(o => o.OrderDate.DayOfWeek.ToString())
+                  .ToDictionary(g => g.Key, g => g.Sum(o => o.NetAmount));
+}
+
+// 71. ระบบจัดการลูกค้าองค์กร/ลูกค้าเครดิต (Corporate/Credit Customers)
+public class CorporateCustomer : Customer
+{
+    public decimal CreditLimit { get; set; }
+    public decimal CurrentCreditBalance { get; set; }
+}
+public void ProcessCreditPayment(CorporateCustomer customer, decimal amount)
+{
+    if (customer.CurrentCreditBalance + amount <= customer.CreditLimit)
+    {
+        customer.CurrentCreditBalance += amount;
+        Console.WriteLine($"Processed credit payment for {amount:C}. New balance: {customer.CurrentCreditBalance:C}");
+    }
+    else
+    {
+        Console.WriteLine("Credit limit exceeded.");
+    }
+}
+
+// 72. ระบบจัดการการนับสต็อก (Stock Counting / Inventory Audit)
+public void StartStockCount(string warehouseId)
+{
+    Console.WriteLine($"Initiating stock count for warehouse {warehouseId}.");
+    // Generate a count sheet or enable counting mode
+}
+public void RecordStockCount(int productId, int actualQuantity)
+{
+    var product = _products.FirstOrDefault(p => p.Id == productId);
+    if (product != null)
+    {
+        int difference = actualQuantity - product.StockQuantity;
+        if (difference != 0)
+        {
+            Console.WriteLine($"Stock adjustment for {product.Name}: {difference} units.");
+            product.StockQuantity = actualQuantity;
+            LogStockMovement(productId, "Adjustment", difference, "Stock Count", _users.First().Id); // Log adjustment
+        }
+    }
+}
+
+// 73. ระบบจัดการราคาตามหน่วยย่อย/หน่วยใหญ่ (Unit Conversion Pricing) - เช่น ซื้อเป็นโหลถูกกว่าซื้อเป็นชิ้น
+// (Requires a unit conversion table for products and logic to select price based on purchased unit)
+public decimal GetConvertedPrice(Product product, string desiredUnit)
+{
+    // Example: if product is "Egg" (piece) and desiredUnit is "Dozen"
+    // return product.UnitPrice * 12 * 0.95m; // Discounted dozen price
+    return product.UnitPrice;
+}
+
+// 74. ระบบจัดการรายการโปรด/สินค้าขายเร็ว (Favorite/Quick Sale Items)
+// (UI feature: often a configurable grid of popular items for fast selection)
+public List<Product> GetQuickSaleItems()
+{
+    // Return a predefined list or frequently sold items
+    return _products.Where(p => p.Id == 1 || p.Id == 2).ToList();
+}
+
+// 75. ระบบแจ้งเตือนข้อผิดพลาด (Error Logging and Alerts)
+public void LogError(string errorMessage, string source)
+{
+    Console.Error.WriteLine($"[ERROR] {DateTime.Now}: {errorMessage} (Source: {source})");
+    // In a real system, log to file, database, or monitoring service
+}
+
+// 76. ระบบจัดการผู้รับผิดชอบ (Responsible Person for Transactions)
+// (Already covered by associating User with Order, Shift Management)
+
+// 77. ระบบจัดการการออกใบกำกับภาษีเต็มรูป (Full Tax Invoice Issuance)
+// (Requires more comprehensive customer and company tax details, and specific format)
+public void PrintFullTaxInvoice(Order order)
+{
+    Console.WriteLine($"\n--- Full Tax Invoice for Order ID: {order.Id} ---");
+    // Include all required tax invoice details (customer tax ID, company address etc.)
+    PrintReceipt(order); // Re-use basic receipt printing, add more details
+    Console.WriteLine("--- End Full Tax Invoice ---\n");
+}
+
+// 78. ระบบจัดการการบันทึกข้อมูลภาษีซื้อ/ภาษีขาย (Input/Output Tax Recording)
+// (Part of comprehensive accounting integration, often handled by exporting data)
+// public void RecordInputTax(decimal amount, string supplierTaxId) { /* ... */ }
+// public void RecordOutputTax(decimal amount, string customerTaxId) { /* ... */ }
+
+// 79. ระบบจัดการรูปภาพสินค้า (Product Image Management)
+public string GetProductImageUrl(int productId)
+{
+    // Return URL/path from database
+    return $"./images/product_{productId}.jpg";
+}
+
+// 80. ระบบจัดการหมวดหมู่สินค้า (Product Category Management)
+// (Product model already has Category, this is for CRUD on categories)
+public class ProductCategory
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+}
+private List<ProductCategory> _categories = new List<ProductCategory>();
+public void AddCategory(string name) { _categories.Add(new ProductCategory { Id = _categories.Count + 1, Name = name }); }
+
+// 81. ระบบจัดการหน่วยนับสินค้า (Unit of Measure Management)
+// (Product model has UnitOfMeasure, this is for master list)
+public List<string> GetAvailableUnitsOfMeasure()
+{
+    return new List<string> { "Piece", "Pack", "Kg", "Litre", "Dozen" };
+}
+
+// 82. ระบบแจ้งเตือนการอัปเดตซอฟต์แวร์ (Software Update Notification)
+public bool IsSoftwareUpdateAvailable(string currentVersion)
+{
+    // Check external server for latest version
+    // return _updateService.CheckForUpdates(currentVersion);
+    return true; // Simulating an update is available
+}
+
+// 83. ระบบล็อกเอาต์อัตโนมัติเมื่อไม่มีการใช้งาน (Auto Logout on Inactivity)
+// (Requires monitoring user activity / input events in UI)
+public void SetAutoLogoutTimer(int minutes)
+{
+    Console.WriteLine($"Auto-logout set for {minutes} minutes of inactivity.");
+    // Implement a timer that triggers logout if no input is detected
+}
+
+// 84. ระบบจัดการการโอนสต็อกระหว่างคลัง (Stock Transfer between Warehouses)
+public void TransferStock(int productId, int fromWarehouseId, int toWarehouseId, int quantity)
+{
+    // Deduct from source warehouse, add to destination warehouse
+    Console.WriteLine($"Transferred {quantity} of {productId} from warehouse {fromWarehouseId} to {toWarehouseId}.");
+    LogStockMovement(productId, "Transfer Out", -quantity, $"To WH {toWarehouseId}", _users.First().Id);
+    LogStockMovement(productId, "Transfer In", quantity, $"From WH {fromWarehouseId}", _users.First().Id);
+}
+
+// 85. ระบบจัดการหมายเลขซีเรียลสินค้า (Serial Number Tracking)
+// (Requires each product item to have a unique serial number)
+public class SerializedProductInstance : CartItem
+{
+    public string SerialNumber { get; set; }
+}
+// When adding, track serial numbers:
+// public void AddSerializedItem(Product product, string serialNumber) { /* ... */ }
+
+// 86. ระบบจัดการบัตรกำนัล/บัตรของขวัญ (Gift Card Management)
+public class GiftCard
+{
+    public string Code { get; set; }
+    public decimal Balance { get; set; }
+    public DateTime ExpiryDate { get; set; }
+    public bool IsActive { get; set; }
+}
+private List<GiftCard> _giftCards = new List<GiftCard>();
+public decimal RedeemGiftCard(string code, decimal amountToRedeem)
+{
+    var card = _giftCards.FirstOrDefault(c => c.Code == code && c.IsActive && c.ExpiryDate > DateTime.Now);
+    if (card != null && card.Balance >= amountToRedeem)
+    {
+        card.Balance -= amountToRedeem;
+        Console.WriteLine($"Redeemed {amountToRedeem:C} from gift card {code}. Remaining balance: {card.Balance:C}");
+        return amountToRedeem;
+    }
+    Console.WriteLine("Invalid or insufficient gift card.");
+    return 0;
+}
+
+// 87. ระบบจัดการการหัก ณ ที่จ่าย (Withholding Tax)
+// (Complex accounting feature, usually for B2B or specific services)
+public decimal CalculateWithholdingTax(decimal amount, decimal rate)
+{
+    return amount * rate;
+}
+
+// 88. ระบบจัดการการรับชำระค่าสาธารณูปโภค (Utility Bill Payment Service)
+// (Requires integration with specific bill payment APIs or service providers)
+public bool ProcessUtilityBillPayment(string biller, string accountNumber, decimal amount)
+{
+    Console.WriteLine($"Processing {biller} bill for account {accountNumber} for {amount:C}.");
+    // Call external API
+    return true;
+}
+
+// 89. ระบบจัดการค่าบริการ/ค่าใช้จ่ายเพิ่มเติม (Service Charges/Additional Fees)
+public void AddServiceCharge(decimal amount, string description)
+{
+    // Add a special item to the CurrentOrder for service charge
+    CurrentOrder.Items.Add(new CartItem
+    {
+        Product = new Product { Name = description, UnitPrice = amount, StockQuantity = 1 },
+        Quantity = 1,
+        ItemPrice = amount
+    });
+    CalculateOrderTotals();
+    Console.WriteLine($"Added service charge: {description} - {amount:C}");
+}
+
+// 90. ระบบจัดการการชำระเงินมัดจำ (Deposit Payment)
+public void RecordDepositPayment(int orderId, decimal amount)
+{
+    var order = _orders.FirstOrDefault(o => o.Id == orderId);
+    if (order != null)
+    {
+        // Add to order's payment details, possibly a separate field for deposits
+        Console.WriteLine($"Recorded deposit of {amount:C} for order {orderId}.");
+    }
+}
+
+// 91. ระบบจัดการการรับชำระด้วยแต้มสะสม/เครดิต (Loyalty Points/Credit Payment)
+public decimal PayWithLoyaltyPoints(Customer customer, decimal pointsToRedeem)
+{
+    if (customer.LoyaltyPoints >= pointsToRedeem)
+    {
+        customer.LoyaltyPoints -= pointsToRedeem;
+        decimal cashEquivalent = pointsToRedeem / 10; // e.g., 10 points = 1 THB
+        Console.WriteLine($"Redeemed {pointsToRedeem} points for {cashEquivalent:C}. New points: {customer.LoyaltyPoints}");
+        return cashEquivalent;
+    }
+    Console.WriteLine("Insufficient loyalty points.");
+    return 0;
+}
+
+// 92. ระบบจัดการการยกเลิกรายการสินค้าในบิล (Cancel Item in Order)
+public void RemoveItemFromCurrentOrder(string productIdentifier)
+{
+    var itemToRemove = CurrentOrder.Items.FirstOrDefault(item =>
+        item.Product.Code == productIdentifier ||
+        item.Product.Name.Contains(productIdentifier, StringComparison.OrdinalIgnoreCase));
+
+    if (itemToRemove != null)
+    {
+        CurrentOrder.Items.Remove(itemToRemove);
+        CalculateOrderTotals();
+        Console.WriteLine($"Removed {itemToRemove.Product.Name} from cart.");
+        RecordAudit(CurrentOrder.Id, $"Removed item {itemToRemove.Product.Name}", _currentCashier?.Username ?? "System", DateTime.Now);
+    }
+    else
+    {
+        Console.WriteLine($"Product '{productIdentifier}' not found in current order.");
+    }
+}
+
+// 93. ระบบจัดการการขอใบเสนอราคา (Quotation Generation)
+public Order GenerateQuotation(Customer customer, List<CartItem> items)
+{
+    var quotation = new Order
+    {
+        Id = _orders.Count + 1, // Assign temporary ID
+        OrderDate = DateTime.Now,
+        Customer = customer,
+        Items = items,
+        Status = OrderStatus.Pending, // Or a specific 'Quotation' status
+        CreatedDate = DateTime.Now
+    };
+    // Calculate totals for quotation
+    // Save quotation, but don't affect stock
+    Console.WriteLine($"Quotation generated for {customer.Name} with ID: {quotation.Id}");
+    return quotation;
+}
+
+// 94. ระบบจัดการการชำระเงินด้วย Wallet/E-Wallet (E-Wallet Payment)
+// (Requires integration with specific E-Wallet providers like PromptPay QR, TrueMoney, etc.)
+public bool ProcessEWalletPayment(decimal amount, string walletType)
+{
+    Console.WriteLine($"Initiating {walletType} payment for {amount:C}...");
+    // Call E-Wallet API
+    return true; // Assume success
+}
+
+// 95. ระบบจัดการส่วนลดตามกลุ่มลูกค้า (Customer Group Discounts)
+public decimal GetCustomerGroupDiscount(Customer customer, decimal subTotal)
+{
+    // Example: VIP customers get 10% off if order > 500
+    if (customer.LoyaltyPoints > 1000 && subTotal > 500)
+    {
+        return subTotal * 0.10m;
+    }
+    return 0;
+}
+
+// 96. ระบบจัดการการคืนเงินแบบเต็มบิล/บางส่วน (Full/Partial Refund)
+// (RefundOrder already handles full, RefundProductFromOrder handles partial)
+
+// 97. ระบบจัดการสินค้าคงคลังติดลบ (Negative Stock Handling)
+// (Configuration option: allow/disallow negative stock. If allowed, issue alert.)
+public bool AllowNegativeStock { get; set; } = false; // Default: disallow
+
+// Inside AddItemToOrder or when deducting stock:
+// if (!AllowNegativeStock && product.StockQuantity < quantity) { // Block sale }
+// else if (product.StockQuantity < quantity) { Console.WriteLine("Warning: Negative stock will occur!"); }
+
+// 98. ระบบจัดการการปรับปรุงสต็อก (Stock Adjustment) - เพิ่ม/ลดสต็อกโดยไม่มีการซื้อขาย
+public void AdjustStock(int productId, int quantityChange, string reason, int userId)
+{
+    var product = _products.FirstOrDefault(p => p.Id == productId);
+    if (product != null)
+    {
+        product.StockQuantity += quantityChange;
+        Console.WriteLine($"Stock for {product.Name} adjusted by {quantityChange}. New stock: {product.StockQuantity}. Reason: {reason}");
+        LogStockMovement(productId, "Adjustment", quantityChange, reason, userId);
+    }
+}
+
+// 99. ระบบจัดการผู้ดูแลระบบ (Admin Panel/User Interface for Admin)
+// (This refers to the UI/backend for managing users, products, reports, etc.)
+// No direct code snippet for this, as it's a UI/Architecture concern.
+
+// 100. ระบบจัดการการจัดส่งสินค้า (Delivery Management) - Tracking, Assigning Driver
+public class Delivery
+{
+    public int Id { get; set; }
+    public int OrderId { get; set; }
+    public string Status { get; set; } // "Pending", "Out for Delivery", "Delivered"
+    public string DriverName { get; set; }
+    public DateTime? DeliveryTime { get; set; }
+    public string DeliveryAddress { get; set; }
+}
+private List<Delivery> _deliveries = new List<Delivery>();
+public void AssignDelivery(int orderId, string driverName)
+{
+    var delivery = new Delivery { Id = _deliveries.Count + 1, OrderId = orderId, Status = "Pending", DriverName = driverName };
+    _deliveries.Add(delivery);
+    Console.WriteLine($"Order {orderId} assigned to {driverName} for delivery.");
+}
+public void UpdateDeliveryStatus(int deliveryId, string newStatus)
+{
+    var delivery = _deliveries.FirstOrDefault(d => d.Id == deliveryId);
+    if (delivery != null)
+    {
+        delivery.Status = newStatus;
+        if (newStatus == "Delivered") delivery.DeliveryTime = DateTime.Now;
+        Console.WriteLine($"Delivery {deliveryId} status updated to {newStatus}.");
+    }
+}
+
+// End of PosSystem class
+```
+
+---
+
+**Explanation of the additional points:**
+
+These 50 points expand the POS system's capabilities into more advanced areas such as:
+
+* **Inventory Management:** Bundles, goods receipt, returns to supplier, stock movement logs, stock counting, serial number tracking, negative stock handling, and stock adjustments.
+* **Pricing & Promotions:** Tiered pricing, customer group discounts.
+* **Payment & Financials:** Credit card surcharge, other tax handling (excise tax), credit/corporate customer management, gift card redemption, withholding tax, utility bill payments, service charges, deposit payments, loyalty points/credit payment, and E-wallet integration.
+* **Customer & Sales Operations:** Customer facing display, quick sale items, full tax invoice, quotation generation, and delivery management.
+* **System Administration & Maintenance:** Supplier management, backup & restore, data access control, error logging, software update notifications, and auto-logout.
+* **Hardware Integration:** Weight scale and EDC terminal (conceptual).
+
+As before, the C# code snippets are conceptual and aim to illustrate the logic. A full implementation would require robust error handling, database interactions (ORM like Entity Framework), a well-structured UI framework (like WPF, ASP.NET Core, or WinForms), and proper architectural patterns (e.g., MVVM, Clean Architecture).
+
+This comprehensive list of features, spanning 100 points, covers a very broad range of functionalities expected from a modern POS system, making it suitable for various retail environments.
 ```
