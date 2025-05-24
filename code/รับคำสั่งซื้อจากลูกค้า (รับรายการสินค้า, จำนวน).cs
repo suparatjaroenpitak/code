@@ -1,1445 +1,4737 @@
+แน่นอน นี่คือโครงสร้างโค้ด C# .NET แบบย่อสำหรับ 50 Logic ของระบบ POS โดยเน้นที่ชื่อฟังก์ชันและตัวแปรภาษาไทยตามที่คุณต้องการ:
+
 ```csharp
-// เนื่องจากข้อกำหนดคือ "เขียนโค้ด .net ตาม 50 ข้อด้านบน สั้นๆ เรียงตามข้อ"
-// การสร้างโค้ด .NET ที่ทำงานได้จริงสำหรับทั้ง 50 ข้อในรูปแบบที่ "สั้นๆ" และ "เรียงตามข้อ"
-// นั้นเป็นไปไม่ได้ในทางปฏิบัติ เนื่องจากแต่ละข้อต้องการตรรกะและโครงสร้างข้อมูลที่ซับซ้อน
-// รวมถึงการเชื่อมต่อกับฐานข้อมูลและ UI ที่เป็นส่วนประกอบสำคัญของระบบ POS
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
-// อย่างไรก็ตาม ผมจะพยายามนำเสนอโครงสร้างโค้ด C# (.NET) ที่เป็นไปได้
-// สำหรับแต่ละข้อในลักษณะของ "Concept" หรือ "Snippet" เพื่อแสดงแนวคิด
-// โดยจะเน้นไปที่ Business Logic และการคำนวณตามที่ระบุในโจทย์
-// และละเว้นรายละเอียดปลีกย่อยของการใช้งาน UI, Database Context หรือ Error Handling ที่ครบถ้วน
-// (ซึ่งในความเป็นจริงแล้วแต่ละข้ออาจต้องใช้โค้ดหลายสิบถึงร้อยบรรทัด)
-
-// ข้อควรทราบ: นี่คือโค้ดตัวอย่างเชิงแนวคิด ไม่ใช่โค้ดที่สามารถรันได้ทันทีโดยไม่มีการปรับปรุง
-// และเพิ่มเติมรายละเอียดที่จำเป็นสำหรับระบบ POS ที่สมบูรณ์
-
-// ---
-
-// สมมติฐานเบื้องต้นสำหรับโครงสร้างข้อมูล (Models)
-public class Product
+public class สินค้า
 {
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public string Code { get; set; }
-    public decimal UnitPrice { get; set; }
-    public int StockQuantity { get; set; }
-    public string UnitOfMeasure { get; set; } // เช่น ชิ้น, แพ็ค, กิโลกรัม
-    public DateTime? ExpiryDate { get; set; }
-    public decimal VatRate { get; set; } = 0.07m; // Default VAT 7%
-    public string Category { get; set; }
+    public string รหัสสินค้า { get; set; }
+    public string ชื่อสินค้า { get; set; }
+    public decimal ราคาต่อหน่วย { get; set; }
+    public int จำนวนคงเหลือ { get; set; }
+    public string หน่วยนับ { get; set; } // ข้อ 19
+    public DateTime วันหมดอายุ { get; set; } // ข้อ 30
+    public decimal ราคาพิเศษสมาชิก { get; set; } // ข้อ 22
+    public string หมวดหมู่ { get; set; } // ข้อ 18
+    public decimal อัตราภาษี { get; set; } // ข้อ 49
 }
 
-public class CartItem
+public class รายการสินค้าในตะกร้า
 {
-    public Product Product { get; set; }
-    public decimal Quantity { get; set; }
-    public decimal ItemPrice { get; set; } // ราคาต่อหน่วย x จำนวน (ก่อนส่วนลด)
-    public decimal ItemDiscountAmount { get; set; } // ส่วนลดของรายการนั้น
-    public decimal ItemVatAmount { get; set; } // ภาษีของรายการนั้น
-    public decimal NetPrice { get; set; } // ราคาสุทธิของรายการหลังหักส่วนลดและบวก VAT
+    public สินค้า สินค้า { get; set; }
+    public int จำนวน { get; set; }
+    public decimal ราคารวมรายการ { get; set; } // ข้อ 5
+    public decimal ส่วนลดรายการ { get; set; } // ข้อ 7
 }
 
-public class Order
+public class ใบเสร็จ
 {
-    public int Id { get; set; }
-    public DateTime OrderDate { get; set; }
-    public List<CartItem> Items { get; set; } = new List<CartItem>();
-    public decimal SubTotal { get; set; } // ราคารวมก่อนหักส่วนลดและบวก VAT
-    public decimal TotalDiscountAmount { get; set; }
-    public decimal TotalVatAmount { get; set; }
-    public decimal NetAmount { get; set; } // ยอดสุทธิที่ต้องจ่าย
-    public string PaymentMethod { get; set; }
-    public decimal AmountPaid { get; set; }
-    public decimal ChangeAmount { get; set; }
-    public Customer Customer { get; set; }
-    public User SalesPerson { get; set; }
-    public OrderStatus Status { get; set; } = OrderStatus.Pending;
-    public string Notes { get; set; }
-    public DateTime CreatedDate { get; set; }
-    public DateTime LastModifiedDate { get; set; }
+    public string เลขที่บิล { get; set; }
+    public DateTime วันที่เวลาขาย { get; set; }
+    public List<รายการสินค้าในตะกร้า> รายการสินค้า { get; set; }
+    public decimal ยอดรวมก่อนหักส่วนลด { get; set; } // ข้อ 6
+    public decimal ส่วนลดรวม { get; set; } // ข้อ 8
+    public decimal ยอดรวมหลังหักส่วนลด { get; set; }
+    public decimal ภาษีมูลค่าเพิ่ม { get; set; } // ข้อ 9
+    public decimal ยอดสุทธิที่ต้องชำระ { get; set; } // ข้อ 10
+    public string ช่องทางการชำระเงิน { get; set; } // ข้อ 11
+    public decimal ยอดเงินที่รับมา { get; set; }
+    public decimal เงินทอน { get; set; } // ข้อ 24
+    public ลูกค้า ข้อมูลลูกค้า { get; set; } // ข้อ 35
+    public พนักงาน ข้อมูลพนักงานขาย { get; set; } // ข้อ 47
+    public string สถานะบิล { get; set; } // เช่น "เสร็จสมบูรณ์", "ยกเลิก", "คืนสินค้า"
+    public string หมายเหตุ { get; set; } // ข้อ 44
+    public decimal ค่าจัดส่ง { get; set; } // ข้อ 38
 }
 
-public class Customer
+public class ลูกค้า
 {
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public string Phone { get; set; }
-    public decimal LoyaltyPoints { get; set; }
-    public string Address { get; set; }
+    public string รหัสลูกค้า { get; set; }
+    public string ชื่อลูกค้า { get; set; }
+    public int แต้มสะสม { get; set; } // ข้อ 21
+    public List<ใบเสร็จ> ประวัติการซื้อ { get; set; } // ข้อ 16
+    public decimal วงเงินเครดิตคงเหลือ { get; set; } // ข้อ 50
 }
 
-public class User
+public class พนักงาน
 {
-    public int Id { get; set; }
-    public string Username { get; set; }
-    public string PasswordHash { get; set; }
-    public UserRole Role { get; set; }
+    public string รหัสพนักงาน { get; set; }
+    public string ชื่อพนักงาน { get; set; }
+    public string รหัสผ่าน { get; set; }
+    public string สิทธิ์การใช้งาน { get; set; } // ข้อ 32
 }
 
-public enum OrderStatus
+public class โปรโมชั่น
 {
-    Pending,
-    Completed,
-    Refunded,
-    Voided,
-    OnHold,
-    PreOrder
+    public string รหัสโปรโมชั่น { get; set; }
+    public string ชื่อโปรโมชั่น { get; set; }
+    public string ประเภทโปรโมชั่น { get; set; } // เช่น "ซื้อXแถมY", "ส่วนลดตามจำนวน"
+    public Func<List<รายการสินค้าในตะกร้า>, decimal> คำนวณส่วนลดโปรโมชั่น { get; set; }
 }
 
-public enum UserRole
+public class คูปอง
 {
-    Admin,
-    Manager,
-    Cashier
+    public string รหัสคูปอง { get; set; }
+    public decimal มูลค่าส่วนลด { get; set; }
+    public DateTime วันหมดอายุ { get; set; }
+    public bool ใช้งานแล้ว { get; set; }
 }
 
-// ---
-
-// คลาสหลักสำหรับ Logic ของ POS
-public class PosSystem
+public class ระบบPOS
 {
-    private List<Product> _products = new List<Product>(); // Mock Database for Products
-    private List<Order> _orders = new List<Order>();     // Mock Database for Orders
-    private List<Customer> _customers = new List<Customer>(); // Mock Database for Customers
-    private List<User> _users = new List<User>();         // Mock Database for Users
+    private List<สินค้า> คลังสินค้า;
+    private List<รายการสินค้าในตะกร้า> ตะกร้าสินค้า;
+    private List<ใบเสร็จ> ประวัติการขาย;
+    private List<ลูกค้า> ฐานข้อมูลลูกค้า;
+    private List<พนักงาน> ฐานข้อมูลพนักงาน;
+    private List<โปรโมชั่น> รายการโปรโมชั่น;
+    private List<คูปอง> รายการคูปอง;
+    private พนักงาน พนักงานที่เข้าสู่ระบบปัจจุบัน;
+    private string คลังสินค้าปัจจุบัน; // ข้อ 17
 
-    public Order CurrentOrder { get; set; } // ตะกร้าสินค้าปัจจุบัน
-
-    public PosSystem()
+    public ระบบPOS()
     {
-        // Sample Data
-        _products.Add(new Product { Id = 1, Name = "Milk", Code = "P001", UnitPrice = 50.00m, StockQuantity = 100, UnitOfMeasure = "Litre", VatRate = 0.07m, Category = "Dairy" });
-        _products.Add(new Product { Id = 2, Name = "Bread", Code = "P002", UnitPrice = 35.00m, StockQuantity = 50, UnitOfMeasure = "Loaf", VatRate = 0.07m, Category = "Bakery" });
-        _products.Add(new Product { Id = 3, Name = "Apple", Code = "P003", UnitPrice = 10.00m, StockQuantity = 200, UnitOfMeasure = "Piece", VatRate = 0.07m, Category = "Fruit" });
-        _products.Add(new Product { Id = 4, Name = "Medicine A", Code = "P004", UnitPrice = 120.00m, StockQuantity = 30, UnitOfMeasure = "Pack", ExpiryDate = DateTime.Now.AddMonths(3), VatRate = 0.00m, Category = "Medicine" }); // ยาส่วนใหญ่อาจไม่คิด VAT
-
-        _customers.Add(new Customer { Id = 1, Name = "Alice", Phone = "0812345678", LoyaltyPoints = 100 });
-        _customers.Add(new Customer { Id = 2, Name = "Bob", Phone = "0898765432", LoyaltyPoints = 50 });
-
-        _users.Add(new User { Id = 1, Username = "admin", PasswordHash = "hashed_admin_pass", Role = UserRole.Admin });
-        _users.Add(new User { Id = 2, Username = "cashier1", PasswordHash = "hashed_cashier_pass", Role = UserRole.Cashier });
-
-        CurrentOrder = new Order { Items = new List<CartItem>() };
+        คลังสินค้า = new List<สินค้า>();
+        ตะกร้าสินค้า = new List<รายการสินค้าในตะกร้า>();
+        ประวัติการขาย = new List<ใบเสร็จ>();
+        ฐานข้อมูลลูกค้า = new List<ลูกค้า>();
+        ฐานข้อมูลพนักงาน = new List<พนักงาน>();
+        รายการโปรโมชั่น = new List<โปรโมชั่น>();
+        รายการคูปอง = new List<คูปอง>();
+        คลังสินค้าปัจจุบัน = "คลังหลัก"; // ตั้งค่าเริ่มต้น
     }
 
-    // 1. รับคำสั่งซื้อจากลูกค้า (รับรายการสินค้า, จำนวน)
-    public void AddItemToOrder(string productIdentifier, decimal quantity)
+    // --- 1. รับคำสั่งซื้อจากลูกค้า (รับรายการสินค้า, จำนวน)
+    public void เพิ่มสินค้าลงตะกร้า(สินค้า สินค้า, int จำนวน)
     {
-        // 18. ค้นหาสินค้าตามชื่อ, รหัสสินค้า หรือหมวดหมู่ (ใช้ในนี้)
-        Product product = _products.FirstOrDefault(p =>
-            p.Code == productIdentifier ||
-            p.Name.Contains(productIdentifier, StringComparison.OrdinalIgnoreCase) ||
-            p.Id.ToString() == productIdentifier);
-
-        if (product == null)
+        // ข้อ 2. ตรวจสอบว่าสินค้ามีในสต็อกเพียงพอหรือไม่
+        if (สินค้า.จำนวนคงเหลือ < จำนวน)
         {
-            Console.WriteLine($"Product '{productIdentifier}' not found.");
+            Console.WriteLine($"ข้อผิดพลาด: สินค้า {สินค้า.ชื่อสินค้า} มีในสต็อกไม่เพียงพอ");
             return;
         }
 
-        // 2. ตรวจสอบว่าสินค้ามีในสต็อกเพียงพอหรือไม่
-        if (product.StockQuantity < quantity)
+        // ข้อ 3. เพิ่มสินค้าลงในตะกร้าสินค้า (Shopping Cart)
+        // ข้อ 4. รวมรายการสินค้าซ้ำ (ถ้ามีสินค้าเดียวกันเพิ่มจำนวนแทนเพิ่มแถวใหม่)
+        var รายการเดิม = ตะกร้าสินค้า.FirstOrDefault(x => x.สินค้า.รหัสสินค้า == สินค้า.รหัสสินค้า);
+        if (รายการเดิม != null)
         {
-            Console.WriteLine($"Insufficient stock for {product.Name}. Available: {product.StockQuantity}");
-            return;
-        }
-
-        // 3. เพิ่มสินค้าลงในตะกร้าสินค้า (Shopping Cart)
-        // 4. รวมรายการสินค้าซ้ำ (ถ้ามีสินค้าเดียวกันเพิ่มจำนวนแทนเพิ่มแถวใหม่)
-        var existingItem = CurrentOrder.Items.FirstOrDefault(item => item.Product.Id == product.Id);
-        if (existingItem != null)
-        {
-            existingItem.Quantity += quantity;
+            รายการเดิม.จำนวน += จำนวน;
+            รายการเดิม.ราคารวมรายการ = รายการเดิม.สินค้า.ราคาต่อหน่วย * รายการเดิม.จำนวน; // ข้อ 5
         }
         else
         {
-            CurrentOrder.Items.Add(new CartItem { Product = product, Quantity = quantity });
-        }
-        CalculateOrderTotals(); // คำนวณใหม่ทุกครั้งที่เพิ่ม/ลบ
-        Console.WriteLine($"{quantity} x {product.Name} added to cart.");
-    }
-
-    // 5. คำนวณราคาสินค้าต่อรายการ (ราคาต่อหน่วย x จำนวน)
-    // 6. คำนวณราคารวมของตะกร้าสินค้าทั้งหมด (รวมทุกรายการ)
-    // 7. คำนวณส่วนลดสินค้าแต่ละรายการ (เช่น % หรือจำนวนเงินคงที่)
-    // 8. คำนวณส่วนลดรวมทั้งหมด (รวมทุกรายการหลังหักส่วนลดสินค้า)
-    // 9. คำนวณภาษีมูลค่าเพิ่ม (VAT) ตามอัตราที่กำหนด (เช่น 7%)
-    // 10. คำนวณยอดเงินสุทธิที่ต้องจ่ายหลังหักส่วนลดและบวก VAT
-    private void CalculateOrderTotals()
-    {
-        CurrentOrder.SubTotal = 0;
-        CurrentOrder.TotalDiscountAmount = 0;
-        CurrentOrder.TotalVatAmount = 0;
-        CurrentOrder.NetAmount = 0;
-
-        foreach (var item in CurrentOrder.Items)
-        {
-            item.ItemPrice = item.Product.UnitPrice * item.Quantity; // 5.
-            item.ItemDiscountAmount = CalculateItemDiscount(item);   // 7. (ต้องมี logic ใน method นี้)
-
-            decimal priceAfterItemDiscount = item.ItemPrice - item.ItemDiscountAmount;
-            item.ItemVatAmount = priceAfterItemDiscount * item.Product.VatRate; // 9.
-            item.NetPrice = priceAfterItemDiscount + item.ItemVatAmount;
-
-            CurrentOrder.SubTotal += item.ItemPrice;
-            CurrentOrder.TotalDiscountAmount += item.ItemDiscountAmount; // 8. (สำหรับส่วนลดรวมของแต่ละรายการ)
-            CurrentOrder.TotalVatAmount += item.ItemVatAmount;
-        }
-
-        // Apply overall order discounts here if any (e.g., coupon code discount)
-        decimal overallOrderDiscount = CalculateOverallOrderDiscount(CurrentOrder); // 8. (สำหรับส่วนลดรวมของบิล)
-        CurrentOrder.TotalDiscountAmount += overallOrderDiscount;
-
-        // 10. คำนวณยอดเงินสุทธิ
-        CurrentOrder.NetAmount = CurrentOrder.SubTotal - CurrentOrder.TotalDiscountAmount + CurrentOrder.TotalVatAmount;
-
-        Console.WriteLine($"SubTotal: {CurrentOrder.SubTotal:C}");
-        Console.WriteLine($"Total Discount: {CurrentOrder.TotalDiscountAmount:C}");
-        Console.WriteLine($"Total VAT: {CurrentOrder.TotalVatAmount:C}");
-        Console.WriteLine($"Net Amount: {CurrentOrder.NetAmount:C}");
-    }
-
-    // 7. คำนวณส่วนลดสินค้าแต่ละรายการ (ตัวอย่าง)
-    private decimal CalculateItemDiscount(CartItem item)
-    {
-        // Example: If product name contains "Special", give 10% discount
-        if (item.Product.Name.Contains("Special", StringComparison.OrdinalIgnoreCase))
-        {
-            return item.ItemPrice * 0.10m;
-        }
-        // 20. คำนวณโปรโมชั่น เช่น ซื้อ 1 แถม 1 หรือ ซื้อครบตามจำนวนลดราคา
-        // Example: Buy 2 Milk, get 1 free (discount on 1 unit)
-        if (item.Product.Code == "P001" && item.Quantity >= 2)
-        {
-             // For every 2 milk, 1 is free. If 3 milk, 1 free. If 4 milk, 2 free.
-             int freeUnits = (int)Math.Floor(item.Quantity / 2);
-             return freeUnits * item.Product.UnitPrice;
-        }
-        return 0;
-    }
-
-    // 8. คำนวณส่วนลดรวมทั้งหมด (ตัวอย่างสำหรับการใช้คูปอง)
-    private decimal CalculateOverallOrderDiscount(Order order)
-    {
-        // 23. ระบบคูปองส่วนลด (Coupon Code) และตรวจสอบความถูกต้อง
-        // For simplicity, let's assume a hardcoded coupon
-        if (order.Customer != null && order.Customer.Name == "Alice" && order.SubTotal > 100)
-        {
-            // Apply 5% discount if Alice and order > 100
-            return order.SubTotal * 0.05m;
-        }
-        return 0;
-    }
-
-    public bool ProcessPayment(decimal amountPaid, string paymentMethod)
-    {
-        if (amountPaid < CurrentOrder.NetAmount)
-        {
-            Console.WriteLine("Amount paid is less than Net Amount.");
-            return false;
-        }
-
-        // 11. รองรับการจ่ายเงินหลายช่องทาง
-        CurrentOrder.PaymentMethod = paymentMethod;
-        CurrentOrder.AmountPaid = amountPaid;
-        CurrentOrder.ChangeAmount = amountPaid - CurrentOrder.NetAmount; // 24. แสดงยอดเงินทอน
-
-        // 12. บันทึกข้อมูลการขาย (Order) ลงฐานข้อมูล
-        CurrentOrder.Id = _orders.Count + 1; // Simple ID generation
-        CurrentOrder.OrderDate = DateTime.Now;
-        CurrentOrder.Status = OrderStatus.Completed;
-        _orders.Add(CurrentOrder);
-
-        // 13. อัพเดตสต็อกสินค้าหลังการขาย (ตัดสต็อก)
-        foreach (var item in CurrentOrder.Items)
-        {
-            var productInStock = _products.FirstOrDefault(p => p.Id == item.Product.Id);
-            if (productInStock != null)
+            ตะกร้าสินค้า.Add(new รายการสินค้าในตะกร้า
             {
-                productInStock.StockQuantity -= (int)item.Quantity;
+                สินค้า = สินค้า,
+                จำนวน = จำนวน,
+                ราคารวมรายการ = สินค้า.ราคาต่อหน่วย * จำนวน // ข้อ 5
+            });
+        }
+    }
+
+    // --- 6. คำนวณราคารวมของตะกร้าสินค้าทั้งหมด (รวมทุกรายการ)
+    public decimal คำนวณยอดรวมก่อนหักส่วนลด()
+    {
+        return ตะกร้าสินค้า.Sum(x => x.ราคารวมรายการ);
+    }
+
+    // --- 7. คำนวณส่วนลดสินค้าแต่ละรายการ (เช่น % หรือจำนวนเงินคงที่)
+    public void กำหนดส่วนลดรายการ(string รหัสสินค้า, decimal จำนวนส่วนลด, bool เป็นเปอร์เซ็นต์ = false)
+    {
+        var รายการ = ตะกร้าสินค้า.FirstOrDefault(x => x.สินค้า.รหัสสินค้า == รหัสสินค้า);
+        if (รายการ != null)
+        {
+            if (เป็นเปอร์เซ็นต์)
+            {
+                รายการ.ส่วนลดรายการ = รายการ.ราคารวมรายการ * (จำนวนส่วนลด / 100);
+            }
+            else
+            {
+                รายการ.ส่วนลดรายการ = จำนวนส่วนลด;
+            }
+        }
+    }
+
+    // --- 8. คำนวณส่วนลดรวมทั้งหมด (รวมทุกรายการหลังหักส่วนลดสินค้า)
+    public decimal คำนวณส่วนลดรวมทั้งหมด()
+    {
+        return ตะกร้าสินค้า.Sum(x => x.ส่วนลดรายการ);
+    }
+
+    // --- 9. คำนวณภาษีมูลค่าเพิ่ม (VAT) ตามอัตราที่กำหนด (เช่น 7%)
+    public decimal คำนวณภาษีมูลค่าเพิ่ม(decimal ยอดรวมหลังหักส่วนลด, decimal อัตราภาษี = 0.07m)
+    {
+        // ข้อ 49. ระบบจัดการภาษีในกรณีสินค้าหลายประเภท (VAT แยกตามสินค้า)
+        // สำหรับความซับซ้อนนี้ อาจต้องคำนวณภาษีแยกตามรายการสินค้าที่มีอัตราภาษีต่างกัน
+        // ในตัวอย่างนี้ ใช้ VAT รวม
+        return ยอดรวมหลังหักส่วนลด * อัตราภาษี;
+    }
+
+    // --- 10. คำนวณยอดเงินสุทธิที่ต้องจ่ายหลังหักส่วนลดและบวก VAT
+    public decimal คำนวณยอดสุทธิที่ต้องชำระ()
+    {
+        var ยอดรวมก่อนหัก = คำนวณยอดรวมก่อนหักส่วนลด();
+        var ส่วนลดทั้งหมด = คำนวณส่วนลดรวมทั้งหมด();
+        var ยอดรวมหลังหักส่วนลด = ยอดรวมก่อนหัก - ส่วนลดทั้งหมด;
+        var ภาษี = คำนวณภาษีมูลค่าเพิ่ม(ยอดรวมหลังหักส่วนลด);
+        return ยอดรวมหลังหักส่วนลด + ภาษี;
+    }
+
+    // --- 11. รองรับการจ่ายเงินหลายช่องทาง (เงินสด, บัตรเครดิต, โอนเงิน, QR Payment)
+    public ใบเสร็จ ชำระเงิน(string ช่องทางการชำระ, decimal ยอดเงินที่รับมา, ลูกค้า ลูกค้าที่ซื้อ = null, decimal ค่าขนส่ง = 0)
+    {
+        var ใบเสร็จใหม่ = new ใบเสร็จ
+        {
+            เลขที่บิล = Guid.NewGuid().ToString(),
+            วันที่เวลาขาย = DateTime.Now,
+            รายการสินค้า = new List<รายการสินค้าในตะกร้า>(ตะกร้าสินค้า), // คัดลอกรายการ
+            ยอดรวมก่อนหักส่วนลด = คำนวณยอดรวมก่อนหักส่วนลด(),
+            ส่วนลดรวม = คำนวณส่วนลดรวมทั้งหมด(),
+            ช่องทางการชำระเงิน = ช่องทางการชำระ,
+            ยอดเงินที่รับมา = ยอดเงินที่รับมา,
+            ข้อมูลลูกค้า = ลูกค้าที่ซื้อ,
+            ข้อมูลพนักงานขาย = พนักงานที่เข้าสู่ระบบปัจจุบัน, // ข้อ 47
+            ค่าจัดส่ง = ค่าขนส่ง // ข้อ 38
+        };
+
+        ใบเสร็จใหม่.ยอดรวมหลังหักส่วนลด = ใบเสร็จใหม่.ยอดรวมก่อนหักส่วนลด - ใบเสร็จใหม่.ส่วนลดรวม;
+        ใบเสร็จใหม่.ภาษีมูลค่าเพิ่ม = คำนวณภาษีมูลค่าเพิ่ม(ใบเสร็จใหม่.ยอดรวมหลังหักส่วนลด);
+        ใบเสร็จใหม่.ยอดสุทธิที่ต้องชำระ = ใบเสร็จใหม่.ยอดรวมหลังหักส่วนลด + ใบเสร็จใหม่.ภาษีมูลค่าเพิ่ม + ใบเสร็จใหม่.ค่าจัดส่ง;
+
+        // ข้อ 24. แสดงยอดเงินทอนเมื่อลูกค้าจ่ายเงินสด
+        if (ช่องทางการชำระ == "เงินสด")
+        {
+            ใบเสร็จใหม่.เงินทอน = ยอดเงินที่รับมา - ใบเสร็จใหม่.ยอดสุทธิที่ต้องชำระ;
+        }
+
+        // ข้อ 12. บันทึกข้อมูลการขาย (Order) ลงฐานข้อมูล
+        ประวัติการขาย.Add(ใบเสร็จใหม่);
+
+        // ข้อ 13. อัพเดตสต็อกสินค้าหลังการขาย (ตัดสต็อก)
+        foreach (var รายการ in ตะกร้าสินค้า)
+        {
+            var สินค้าในคลัง = คลังสินค้า.FirstOrDefault(s => s.รหัสสินค้า == รายการ.สินค้า.รหัสสินค้า);
+            if (สินค้าในคลัง != null)
+            {
+                สินค้าในคลัง.จำนวนคงเหลือ -= รายการ.จำนวน;
             }
         }
 
-        // 21. ระบบสมาชิก (ลูกค้า) เก็บข้อมูลและคำนวณแต้มสะสม
-        if (CurrentOrder.Customer != null)
+        // ข้อ 21. ระบบสมาชิก (ลูกค้า) เก็บข้อมูลและคำนวณแต้มสะสม
+        if (ลูกค้าที่ซื้อ != null)
         {
-            CurrentOrder.Customer.LoyaltyPoints += CurrentOrder.NetAmount / 10; // 10% of net amount as points
-            Console.WriteLine($"Customer {CurrentOrder.Customer.Name} earned {CurrentOrder.NetAmount / 10} loyalty points.");
+            ลูกค้าที่ซื้อ.แต้มสะสม += (int)(ใบเสร็จใหม่.ยอดสุทธิที่ต้องชำระ / 100); // สมมติ 100 บาทได้ 1 แต้ม
         }
 
-        Console.WriteLine($"Payment successful via {paymentMethod}. Change: {CurrentOrder.ChangeAmount:C}");
-        // 25. รองรับการพิมพ์ใบเสร็จรับเงิน (Receipt) - Logic for printing would go here
-        PrintReceipt(CurrentOrder);
-
-        CurrentOrder = new Order { Items = new List<CartItem>() }; // Reset for new order
-        return true;
+        ตะกร้าสินค้า.Clear(); // ล้างตะกร้าสินค้า
+        return ใบเสร็จใหม่;
     }
 
-    private void PrintReceipt(Order order)
+    // --- 14. รองรับการคืนสินค้า (Refund) พร้อมคืนสต็อก
+    public void คืนสินค้า(string เลขที่บิล, string รหัสสินค้าที่คืน, int จำนวนที่คืน)
     {
-        Console.WriteLine("\n--- RECEIPT ---");
-        Console.WriteLine($"Order ID: {order.Id}");
-        Console.WriteLine($"Date: {order.OrderDate}");
-        if (order.Customer != null) Console.WriteLine($"Customer: {order.Customer.Name}");
-        Console.WriteLine("-----------------");
-        foreach (var item in order.Items)
+        var บิลที่ต้องการคืน = ประวัติการขาย.FirstOrDefault(บิล => บิล.เลขที่บิล == เลขที่บิล);
+        if (บิลที่ต้องการคืน != null)
         {
-            Console.WriteLine($"{item.Product.Name} x {item.Quantity} @ {item.Product.UnitPrice:C} = {item.ItemPrice:C}");
-            if (item.ItemDiscountAmount > 0)
+            var รายการสินค้าที่คืน = บิลที่ต้องการคืน.รายการสินค้า.FirstOrDefault(รายการ => รายการ.สินค้า.รหัสสินค้า == รหัสสินค้าที่คืน);
+            if (รายการสินค้าที่คืน != null && รายการสินค้าที่คืน.จำนวน >= จำนวนที่คืน)
             {
-                Console.WriteLine($"  Discount: -{item.ItemDiscountAmount:C}");
-            }
-            Console.WriteLine($"  Net Item Price: {item.NetPrice - item.ItemVatAmount:C} + VAT: {item.ItemVatAmount:C}");
-        }
-        Console.WriteLine("-----------------");
-        Console.WriteLine($"SubTotal: {order.SubTotal:C}");
-        Console.WriteLine($"Total Discount: {order.TotalDiscountAmount:C}");
-        Console.WriteLine($"Total VAT: {order.TotalVatAmount:C}");
-        Console.WriteLine($"Net Amount: {order.NetAmount:C}");
-        Console.WriteLine($"Amount Paid: {order.AmountPaid:C}");
-        Console.WriteLine($"Change: {order.ChangeAmount:C}");
-        Console.WriteLine($"Payment Method: {order.PaymentMethod}");
-        Console.WriteLine("-----------------\n");
-    }
+                // ลดจำนวนสินค้าในบิลที่ต้องการคืน
+                รายการสินค้าที่คืน.จำนวน -= จำนวนที่คืน;
 
-    // 14. รองรับการคืนสินค้า (Refund) พร้อมคืนสต็อก
-    public void RefundOrder(int orderId)
-    {
-        var orderToRefund = _orders.FirstOrDefault(o => o.Id == orderId && o.Status == OrderStatus.Completed);
-        if (orderToRefund == null)
-        {
-            Console.WriteLine($"Order {orderId} not found or cannot be refunded.");
-            return;
-        }
-
-        // Logic to process refund amount and payment gateway interactions (if any)
-        Console.WriteLine($"Refunding Order ID: {orderId}, Amount: {orderToRefund.NetAmount:C}");
-
-        // Restore stock
-        foreach (var item in orderToRefund.Items)
-        {
-            var productInStock = _products.FirstOrDefault(p => p.Id == item.Product.Id);
-            if (productInStock != null)
-            {
-                productInStock.StockQuantity += (int)item.Quantity;
-            }
-        }
-        orderToRefund.Status = OrderStatus.Refunded;
-        Console.WriteLine($"Order {orderId} refunded and stock restored.");
-    }
-
-    // 15. รองรับการยกเลิกบิลขาย (Void)
-    public void VoidOrder(int orderId)
-    {
-        var orderToVoid = _orders.FirstOrDefault(o => o.Id == orderId && (o.Status == OrderStatus.Pending || o.Status == OrderStatus.Completed));
-        if (orderToVoid == null)
-        {
-            Console.WriteLine($"Order {orderId} not found or cannot be voided.");
-            return;
-        }
-
-        if (orderToVoid.Status == OrderStatus.Completed)
-        {
-            // If already completed, need to revert stock and potentially payment
-            foreach (var item in orderToVoid.Items)
-            {
-                var productInStock = _products.FirstOrDefault(p => p.Id == item.Product.Id);
-                if (productInStock != null)
+                // คืนสต็อก
+                var สินค้าในคลัง = คลังสินค้า.FirstOrDefault(s => s.รหัสสินค้า == รหัสสินค้าที่คืน);
+                if (สินค้าในคลัง != null)
                 {
-                    productInStock.StockQuantity += (int)item.Quantity;
+                    สินค้าในคลัง.จำนวนคงเหลือ += จำนวนที่คืน;
+                }
+
+                // ปรับปรุงยอดเงินในบิล (ซับซ้อนกว่านี้ต้องคำนวณใหม่ละเอียด)
+                // เพื่อความง่ายในตัวอย่างนี้ เราจะแค่เปลี่ยนสถานะ
+                บิลที่ต้องการคืน.สถานะบิล = "คืนสินค้าบางส่วน"; // หรือสร้างบิลคืนสินค้าใหม่
+                Console.WriteLine($"คืนสินค้า {จำนวนที่คืน} ชิ้น สำหรับ {รหัสสินค้าที่คืน} ในบิล {เลขที่บิล} เรียบร้อยแล้ว");
+            }
+        }
+    }
+
+    // --- 15. รองรับการยกเลิกบิลขาย (Void)
+    public void ยกเลิกบิล(string เลขที่บิล)
+    {
+        var บิลที่ต้องการยกเลิก = ประวัติการขาย.FirstOrDefault(บิล => บิล.เลขที่บิล == เลขที่บิล);
+        if (บิลที่ต้องการยกเลิก != null)
+        {
+            บิลที่ต้องการยกเลิก.สถานะบิล = "ยกเลิก";
+            // คืนสต็อกทั้งหมดที่ขายไปในบิลนี้
+            foreach (var รายการในบิล in บิลที่ต้องการยกเลิก.รายการสินค้า)
+            {
+                var สินค้าในคลัง = คลังสินค้า.FirstOrDefault(s => s.รหัสสินค้า == รายการในบิล.สินค้า.รหัสสินค้า);
+                if (สินค้าในคลัง != null)
+                {
+                    สินค้าในคลัง.จำนวนคงเหลือ += รายการในบิล.จำนวน;
                 }
             }
-            // Logic to reverse payment if already processed
-            Console.WriteLine($"Order {orderId} was completed, stock restored. Payment reversal may be needed.");
+            Console.WriteLine($"ยกเลิกบิล {เลขที่บิล} เรียบร้อยแล้ว");
         }
-        orderToVoid.Status = OrderStatus.Voided;
-        Console.WriteLine($"Order {orderId} has been voided.");
-
-        // 42. ระบบเก็บประวัติแก้ไขบิล (Audit Trail) - Record who voided it and when
     }
 
-    // 16. แสดงประวัติการขายย้อนหลังของลูกค้า
-    public List<Order> GetCustomerOrderHistory(int customerId)
+    // --- 16. แสดงประวัติการขายย้อนหลังของลูกค้า
+    public List<ใบเสร็จ> ดูประวัติการขายลูกค้า(string รหัสลูกค้า)
     {
-        return _orders.Where(o => o.Customer != null && o.Customer.Id == customerId).ToList();
-    }
-
-    // 17. รองรับการจัดการสินค้าหลายคลัง (สต็อกแยกตามสาขา)
-    // (Requires a more complex ProductStock model with LocationId)
-    // public class ProductStock
-    // {
-    //     public int ProductId { get; set; }
-    //     public int LocationId { get; set; }
-    //     public int Quantity { get; set; }
-    // }
-    // public void UpdateStockByLocation(int productId, int locationId, int quantityChange) { /* ... */ }
-
-
-    // 19. รองรับการขายสินค้าตามหน่วย (เช่น ชิ้น, แพ็ค, กิโลกรัม)
-    // (Already handled by `Product.UnitOfMeasure` and `CartItem.Quantity` can be decimal)
-
-    // 21. ระบบสมาชิก (ลูกค้า) เก็บข้อมูลและคำนวณแต้มสะสม (ดูใน ProcessPayment)
-
-    // 22. แสดงราคาสินค้าพิเศษสำหรับสมาชิก
-    public decimal GetMemberPrice(Product product, Customer customer)
-    {
-        if (customer != null && customer.LoyaltyPoints > 500)
+        var ลูกค้า = ฐานข้อมูลลูกค้า.FirstOrDefault(c => c.รหัสลูกค้า == รหัสลูกค้า);
+        if (ลูกค้า != null)
         {
-            return product.UnitPrice * 0.95m; // 5% discount for high-point members
+            return ลูกค้า.ประวัติการซื้อ;
         }
-        return product.UnitPrice;
+        return new List<ใบเสร็จ>();
     }
 
-    // 23. ระบบคูปองส่วนลด (Coupon Code) และตรวจสอบความถูกต้อง (ดูใน CalculateOverallOrderDiscount)
-
-    // 24. แสดงยอดเงินทอนเมื่อลูกค้าจ่ายเงินสด (ดูใน ProcessPayment)
-
-    // 25. รองรับการพิมพ์ใบเสร็จรับเงิน (Receipt) (ดูใน PrintReceipt)
-
-    // 26. ระบบเปิด/ปิดกะขาย (Shift Management)
-    private DateTime _shiftStartTime;
-    private User _currentCashier;
-
-    public void StartShift(User cashier)
+    // --- 17. รองรับการจัดการสินค้าหลายคลัง (สต็อกแยกตามสาขา)
+    // ในตัวอย่างนี้ `คลังสินค้า` จะเป็นรวม หรืออาจจะมี List<คลังสินค้า> อีกชั้น
+    public void เปลี่ยนคลังสินค้าปัจจุบัน(string ชื่อคลัง)
     {
-        if (cashier.Role != UserRole.Cashier)
+        คลังสินค้าปัจจุบัน = ชื่อคลัง;
+        Console.WriteLine($"เปลี่ยนคลังสินค้าเป็น: {คลังสินค้าปัจจุบัน}");
+    }
+
+    // --- 18. ค้นหาสินค้าตามชื่อ, รหัสสินค้า หรือหมวดหมู่
+    public List<สินค้า> ค้นหาสินค้า(string คำค้นหา)
+    {
+        return คลังสินค้า.Where(s =>
+            s.ชื่อสินค้า.Contains(คำค้นหา, StringComparison.OrdinalIgnoreCase) ||
+            s.รหัสสินค้า.Contains(คำค้นหา, StringComparison.OrdinalIgnoreCase) ||
+            s.หมวดหมู่.Contains(คำค้นหา, StringComparison.OrdinalIgnoreCase)
+        ).ToList();
+    }
+
+    // --- 20. คำนวณโปรโมชั่น เช่น ซื้อ 1 แถม 1 หรือ ซื้อครบตามจำนวนลดราคา
+    public void ใช้โปรโมชั่น(string รหัสโปรโมชั่น)
+    {
+        var โปรโมชั่นที่ต้องการ = รายการโปรโมชั่น.FirstOrDefault(p => p.รหัสโปรโมชั่น == รหัสโปรโมชั่น);
+        if (โปรโมชั่นที่ต้องการ != null)
         {
-            Console.WriteLine("Only cashiers can start a shift.");
-            return;
+            // Logic การคำนวณโปรโมชั่นจะอยู่ใน Func คำนวณส่วนลดโปรโมชั่น
+            // ตัวอย่าง: ตะกร้าสินค้า = โปรโมชั่นที่ต้องการ.คำนวณส่วนลดโปรโมชั่น(ตะกร้าสินค้า);
+            Console.WriteLine($"ใช้โปรโมชั่น {โปรโมชั่นที่ต้องการ.ชื่อโปรโมชั่น} แล้ว");
         }
-        _shiftStartTime = DateTime.Now;
-        _currentCashier = cashier;
-        Console.WriteLine($"Shift started by {cashier.Username} at {_shiftStartTime}");
     }
 
-    public void EndShift()
+    // --- 21. ระบบสมาชิก (ลูกค้า) เก็บข้อมูลและคำนวณแต้มสะสม - ทำไปแล้วใน `ชำระเงิน`
+
+    // --- 22. แสดงราคาสินค้าพิเศษสำหรับสมาชิก
+    public decimal รับราคาสินค้าสำหรับลูกค้า(สินค้า สินค้า, ลูกค้า ลูกค้า = null)
     {
-        if (_currentCashier == null)
+        if (ลูกค้า != null && สินค้า.ราคาพิเศษสมาชิก > 0)
         {
-            Console.WriteLine("No active shift to end.");
-            return;
+            return สินค้า.ราคาพิเศษสมาชิก;
         }
-        DateTime shiftEndTime = DateTime.Now;
-        Console.WriteLine($"Shift ended by {_currentCashier.Username} at {shiftEndTime}");
-        // 27. บันทึกและสรุปยอดขายรายวัน (หรือรายกะ)
-        SummarizeShiftSales(_shiftStartTime, shiftEndTime, _currentCashier.Id);
-        _currentCashier = null;
+        return สินค้า.ราคาต่อหน่วย;
     }
 
-    // 27. บันทึกและสรุปยอดขายรายวัน (หรือรายกะ)
-    public void SummarizeShiftSales(DateTime startTime, DateTime endTime, int? userId = null)
+    // --- 23. ระบบคูปองส่วนลด (Coupon Code) และตรวจสอบความถูกต้อง
+    public void ใช้คูปอง(string รหัสคูปอง)
     {
-        var salesInPeriod = _orders.Where(o => o.OrderDate >= startTime && o.OrderDate <= endTime && o.Status == OrderStatus.Completed);
-        if (userId.HasValue)
+        var คูปองที่ต้องการ = รายการคูปอง.FirstOrDefault(c => c.รหัสคูปอง == รหัสคูปอง);
+        if (คูปองที่ต้องการ != null && !คูปองที่ต้องการ.ใช้งานแล้ว && คูปองที่ต้องการ.วันหมดอายุ >= DateTime.Now)
         {
-            salesInPeriod = salesInPeriod.Where(o => o.SalesPerson != null && o.SalesPerson.Id == userId.Value);
+            // นำส่วนลดจากคูปองไปใช้กับบิล
+            // ตัวอย่าง: เพิ่มส่วนลดรวมในตะกร้าสินค้า หรือสร้างรายการส่วนลดพิเศษ
+            Console.WriteLine($"ใช้คูปอง {รหัสคูปอง} มูลค่า {คูปองที่ต้องการ.มูลค่าส่วนลด} บาท");
+            คูปองที่ต้องการ.ใช้งานแล้ว = true; // ทำเครื่องหมายว่าใช้แล้ว
         }
-
-        decimal totalSales = salesInPeriod.Sum(o => o.NetAmount);
-        int numberOfTransactions = salesInPeriod.Count();
-        Console.WriteLine($"\n--- Sales Summary ({startTime} to {endTime}) ---");
-        if (userId.HasValue) Console.WriteLine($"For User ID: {userId.Value}");
-        Console.WriteLine($"Total Sales: {totalSales:C}");
-        Console.WriteLine($"Number of Transactions: {numberOfTransactions}");
-        Console.WriteLine("---------------------------------\n");
-
-        // Save this summary to a sales report table/file
+        else
+        {
+            Console.WriteLine("คูปองไม่ถูกต้อง, หมดอายุ หรือถูกใช้งานไปแล้ว");
+        }
     }
 
-    // 28. ระบบรายงานสินค้าขายดี
-    public List<Product> GetBestSellingProducts(int topN = 10)
+    // --- 25. รองรับการพิมพ์ใบเสร็จรับเงิน (Receipt)
+    public void พิมพ์ใบเสร็จ(ใบเสร็จ บิล)
     {
-        return _orders
-            .SelectMany(o => o.Items)
-            .GroupBy(item => item.Product)
-            .Select(group => new { Product = group.Key, TotalQuantitySold = group.Sum(item => item.Quantity) })
-            .OrderByDescending(x => x.TotalQuantitySold)
-            .Take(topN)
-            .Select(x => x.Product)
+        Console.WriteLine("\n--- ใบเสร็จรับเงิน ---");
+        Console.WriteLine($"เลขที่บิล: {บิล.เลขที่บิล}");
+        Console.WriteLine($"วันที่/เวลา: {บิล.วันที่เวลาขาย}");
+        Console.WriteLine("---------------------");
+        foreach (var รายการ in บิล.รายการสินค้า)
+        {
+            Console.WriteLine($"{รายการ.สินค้า.ชื่อสินค้า} x {รายการ.จำนวน} = {รายการ.ราคารวมรายการ:N2}");
+        }
+        Console.WriteLine("---------------------");
+        Console.WriteLine($"ยอดรวมก่อนหักส่วนลด: {บิล.ยอดรวมก่อนหักส่วนลด:N2}");
+        Console.WriteLine($"ส่วนลดรวม: {บิล.ส่วนลดรวม:N2}");
+        Console.WriteLine($"ภาษีมูลค่าเพิ่ม: {บิล.ภาษีมูลค่าเพิ่ม:N2}");
+        Console.WriteLine($"ค่าจัดส่ง: {บิล.ค่าจัดส่ง:N2}"); // ข้อ 38
+        Console.WriteLine($"ยอดสุทธิที่ต้องชำระ: {บิล.ยอดสุทธิที่ต้องชำระ:N2}");
+        Console.WriteLine($"ช่องทางการชำระเงิน: {บิล.ช่องทางการชำระเงิน}");
+        if (บิล.ช่องทางการชำระเงิน == "เงินสด")
+        {
+            Console.WriteLine($"ยอดเงินที่รับมา: {บิล.ยอดเงินที่รับมา:N2}");
+            Console.WriteLine($"เงินทอน: {บิล.เงินทอน:N2}");
+        }
+        Console.WriteLine($"พนักงานขาย: {บิล.ข้อมูลพนักงานขาย?.ชื่อพนักงาน ?? "ไม่ระบุ"}"); // ข้อ 47
+        Console.WriteLine($"หมายเหตุ: {บิล.หมายเหตุ}"); // ข้อ 44
+        Console.WriteLine("---------------------\n");
+    }
+
+    // --- 26. ระบบเปิด/ปิดกะขาย (Shift Management)
+    public void เปิดกะ(พนักงาน พนักงานเปิดกะ)
+    {
+        Console.WriteLine($"กะขายเปิดโดย {พนักงานเปิดกะ.ชื่อพนักงาน} เมื่อ {DateTime.Now}");
+        // บันทึกข้อมูลการเปิดกะ
+    }
+
+    public void ปิดกะ(พนักงาน พนักงานปิดกะ)
+    {
+        // ข้อ 27. บันทึกและสรุปยอดขายรายวัน
+        var ยอดขายในกะ = ประวัติการขาย.Where(บิล => บิล.วันที่เวลาขาย >= DateTime.Today && บิล.ข้อมูลพนักงานขาย.รหัสพนักงาน == พนักงานปิดกะ.รหัสพนักงาน).Sum(บิล =>บิล.ยอดสุทธิที่ต้องชำระ);
+        Console.WriteLine($"กะขายปิดโดย {พนักงานปิดกะ.ชื่อพนักงาน} เมื่อ {DateTime.Now}");
+        Console.WriteLine($"สรุปยอดขายในกะ: {ยอดขายในกะ:N2} บาท");
+        // บันทึกข้อมูลการปิดกะและยอดขาย
+    }
+
+    // --- 28. ระบบรายงานสินค้าขายดี
+    public List<Tuple<สินค้า, int>> รายงานสินค้าขายดี(DateTime วันที่เริ่มต้น, DateTime วันที่สิ้นสุด)
+    {
+        return ประวัติการขาย
+            .Where(บิล => บิล.วันที่เวลาขาย >= วันที่เริ่มต้น && บิล.วันที่เวลาขาย <= วันที่สิ้นสุด)
+            .SelectMany(บิล => บิล.รายการสินค้า)
+            .GroupBy(รายการ => รายการ.สินค้า)
+            .Select(กลุ่ม => Tuple.Create(กลุ่ม.Key, กลุ่ม.Sum(x => x.จำนวน)))
+            .OrderByDescending(x => x.Item2)
             .ToList();
     }
 
-    // 29. ระบบรายงานสินค้าคงเหลือต่ำ (Low Stock Alert)
-    public List<Product> GetLowStockProducts(int threshold = 10)
+    // --- 29. ระบบรายงานสินค้าคงเหลือต่ำ (Low Stock Alert)
+    public List<สินค้า> รายงานสินค้าคงเหลือต่ำ(int จำนวนขั้นต่ำ)
     {
-        return _products.Where(p => p.StockQuantity <= threshold).ToList();
+        return คลังสินค้า.Where(s => s.จำนวนคงเหลือ <= จำนวนขั้นต่ำ).ToList();
     }
 
-    // 30. ระบบแจ้งเตือนสินค้าหมดอายุ (สำหรับสินค้าประเภทอาหาร/ยา)
-    public List<Product> GetExpiringProducts(int daysThreshold = 30)
+    // --- 30. ระบบแจ้งเตือนสินค้าหมดอายุ (สำหรับสินค้าประเภทอาหาร/ยา) - ทำไปแล้วใน `สินค้า`
+    public List<สินค้า> รายงานสินค้าใกล้หมดอายุ(int จำนวนวันล่วงหน้า)
     {
-        return _products.Where(p => p.ExpiryDate.HasValue && p.ExpiryDate.Value <= DateTime.Now.AddDays(daysThreshold)).ToList();
+        return คลังสินค้า.Where(s => s.วันหมดอายุ != default(DateTime) && s.วันหมดอายุ <= DateTime.Today.AddDays(จำนวนวันล่วงหน้า)).ToList();
     }
 
-    // 31. บันทึกข้อมูลผู้ใช้งานระบบ (พนักงานขาย)
-    public void RegisterUser(string username, string password, UserRole role)
+    // --- 31. บันทึกข้อมูลผู้ใช้งานระบบ (พนักงานขาย)
+    public void เพิ่มพนักงาน(พนักงาน พนักงานใหม่)
     {
-        if (_users.Any(u => u.Username == username))
+        ฐานข้อมูลพนักงาน.Add(พนักงานใหม่);
+        Console.WriteLine($"เพิ่มพนักงาน {พนักงานใหม่.ชื่อพนักงาน} เรียบร้อยแล้ว");
+    }
+
+    // --- 32. ระบบกำหนดสิทธิ์ผู้ใช้งาน (Admin, Cashier, Manager) - ทำไปแล้วใน `พนักงาน`
+
+    // --- 33. ระบบล็อกอินด้วยรหัสผ่านหรือบาร์โค้ดพนักงาน
+    public bool ล็อกอิน(string รหัสผู้ใช้, string รหัสผ่าน = null)
+    {
+        var พนักงาน = ฐานข้อมูลพนักงาน.FirstOrDefault(p => p.รหัสพนักงาน == รหัสผู้ใช้);
+        if (พนักงาน != null && (รหัสผ่าน == null || พนักงาน.รหัสผ่าน == รหัสผ่าน))
         {
-            Console.WriteLine($"Username '{username}' already exists.");
+            พนักงานที่เข้าสู่ระบบปัจจุบัน = พนักงาน;
+            Console.WriteLine($"ล็อกอินสำเร็จ: {พนักงาน.ชื่อพนักงาน} (สิทธิ์: {พนักงาน.สิทธิ์การใช้งาน})");
+            return true;
+        }
+        Console.WriteLine("ล็อกอินไม่สำเร็จ: รหัสผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
+        return false;
+    }
+
+    // --- 34. รองรับการสแกนบาร์โค้ดสินค้าด้วยเครื่องอ่านบาร์โค้ด
+    public void สแกนบาร์โค้ดสินค้า(string รหัสบาร์โค้ด)
+    {
+        var สินค้าที่พบ = คลังสินค้า.FirstOrDefault(s => s.รหัสสินค้า == รหัสบาร์โค้ด); // สมมติว่ารหัสบาร์โค้ดคือรหัสสินค้า
+        if (สินค้าที่พบ != null)
+        {
+            เพิ่มสินค้าลงตะกร้า(สินค้าที่พบ, 1); // เพิ่ม 1 ชิ้นเมื่อสแกน
+            Console.WriteLine($"สแกนสินค้า {สินค้าที่พบ.ชื่อสินค้า} เพิ่มลงตะกร้าแล้ว");
+        }
+        else
+        {
+            Console.WriteLine("ไม่พบสินค้าจากบาร์โค้ดนี้");
+        }
+    }
+
+    // --- 35. ระบบบันทึกและจัดการข้อมูลลูกค้า (CRM) - ทำไปแล้วใน `ลูกค้า`
+
+    // --- 36. ระบบจองสินค้า (Hold Items) ไว้ก่อนชำระเงิน
+    public List<รายการสินค้าในตะกร้า> จองสินค้า()
+    {
+        var รายการจอง = new List<รายการสินค้าในตะกร้า>(ตะกร้าสินค้า);
+        ตะกร้าสินค้า.Clear(); // ล้างตะกร้าปัจจุบัน
+        Console.WriteLine("สินค้าในตะกร้าถูกจองแล้ว");
+        return รายการจอง; // ส่งคืนรายการที่ถูกจองไปจัดการภายนอก
+    }
+
+    // --- 37. ระบบจัดการคืนเงินหรือแลกเปลี่ยนสินค้า (Exchange)
+    public void แลกเปลี่ยนสินค้า(string เลขที่บิลเดิม, string รหัสสินค้าที่คืน, int จำนวนที่คืน, string รหัสสินค้าใหม่, int จำนวนสินค้าใหม่)
+    {
+        คืนสินค้า(เลขที่บิลเดิม, รหัสสินค้าที่คืน, จำนวนที่คืน);
+        var สินค้าใหม่ = คลังสินค้า.FirstOrDefault(s => s.รหัสสินค้า == รหัสสินค้าใหม่);
+        if (สินค้าใหม่ != null)
+        {
+            เพิ่มสินค้าลงตะกร้า(สินค้าใหม่, จำนวนสินค้าใหม่); // เพิ่มสินค้าใหม่เข้าตะกร้าเพื่อสร้างบิลใหม่
+            Console.WriteLine($"ดำเนินการแลกเปลี่ยนสินค้า: คืน {รหัสสินค้าที่คืน} และเพิ่ม {รหัสสินค้าใหม่}");
+        }
+    }
+
+    // --- 39. รองรับการสั่งซื้อสินค้าล่วงหน้า (Pre-order)
+    public void สร้างใบสั่งซื้อล่วงหน้า(ลูกค้า ลูกค้า, List<รายการสินค้าในตะกร้า> รายการสั่งซื้อ)
+    {
+        // บันทึกข้อมูลการสั่งซื้อล่วงหน้าลงฐานข้อมูลแยกต่างหาก
+        Console.WriteLine($"สร้างใบสั่งซื้อล่วงหน้าสำหรับลูกค้า {ลูกค้า.ชื่อลูกค้า} เรียบร้อยแล้ว");
+    }
+
+    // --- 40. รองรับการทำงานแบบออฟไลน์ และซิงค์ข้อมูลเมื่อออนไลน์
+    public void ทำงานแบบออฟไลน์()
+    {
+        Console.WriteLine("ระบบกำลังทำงานในโหมดออฟไลน์");
+        // Implement local storage for transactions
+    }
+
+    public void ซิงค์ข้อมูลออนไลน์()
+    {
+        Console.WriteLine("กำลังซิงค์ข้อมูลกับเซิร์ฟเวอร์ออนไลน์...");
+        // Logic to push/pull data from/to central database
+        Console.WriteLine("ซิงค์ข้อมูลสำเร็จ");
+    }
+
+    // --- 41. ระบบจัดการราคาสินค้าตามช่วงเวลา (Time-based pricing)
+    public void กำหนดราคาตามช่วงเวลา(string รหัสสินค้า, decimal ราคาใหม่, DateTime วันที่เริ่มต้น, DateTime วันที่สิ้นสุด)
+    {
+        // ต้องมีโครงสร้างข้อมูลเพื่อเก็บช่วงเวลาและราคา
+        // และต้องมี logic ในการดึงราคาที่ถูกต้องตามเวลาปัจจุบัน
+        Console.WriteLine($"กำหนดราคาสินค้า {รหัสสินค้า} เป็น {ราคาใหม่} ในช่วง {วันที่เริ่มต้น.ToShortDateString()} ถึง {วันที่สิ้นสุด.ToShortDateString()}");
+    }
+
+    // --- 42. ระบบเก็บประวัติแก้ไขบิล (Audit Trail)
+    public void บันทึกการแก้ไขบิล(string เลขที่บิล, string การเปลี่ยนแปลง, พนักงาน ผู้แก้ไข)
+    {
+        Console.WriteLine($"บันทึกการแก้ไขบิล {เลขที่บิล}: {การเปลี่ยนแปลง} โดย {ผู้แก้ไข.ชื่อพนักงาน} ที่ {DateTime.Now}");
+        // บันทึกข้อมูลลงฐานข้อมูล Audit Trail
+    }
+
+    // --- 43. รองรับการขายสินค้าหลายภาษา
+    // ใน `สินค้า` อาจจะต้องมี Dictionary<string, string> ชื่อสินค้าภาษาต่างๆ
+    public string รับชื่อสินค้าตามภาษา(สินค้า สินค้า, string ภาษา)
+    {
+        // Logic ในการดึงชื่อสินค้าตามภาษาที่ต้องการ
+        return สินค้า.ชื่อสินค้า; // ตัวอย่าง: ยังไม่มีการรองรับภาษา
+    }
+
+    // --- 44. ระบบบันทึกหมายเหตุเพิ่มเติมในบิลขาย - ทำไปแล้วใน `ใบเสร็จ`
+
+    // --- 45. ระบบพิมพ์ใบสั่งซื้อสินค้าให้ฝ่ายคลังสินค้า (Purchase Order)
+    public void พิมพ์ใบสั่งซื้อ(List<สินค้า> รายการสินค้าที่ต้องการสั่ง, string ผู้จัดหา)
+    {
+        Console.WriteLine("\n--- ใบสั่งซื้อสินค้า ---");
+        Console.WriteLine($"ถึง: {ผู้จัดหา}");
+        Console.WriteLine($"วันที่: {DateTime.Now}");
+        Console.WriteLine("รายการสินค้า:");
+        foreach (var สินค้าใน PO in รายการสินค้าที่ต้องการสั่ง)
+        {
+            Console.WriteLine($"- {สินค้าใน PO.ชื่อสินค้า} (รหัส: {สินค้าใน PO.รหัสสินค้า}) - จำนวนที่ต้องการสั่ง...");
+        }
+        Console.WriteLine("---------------------\n");
+    }
+
+    // --- 46. ระบบเชื่อมต่อกับเครื่องชำระเงินภายนอก (POS Terminal)
+    public bool เชื่อมต่อเครื่องชำระเงินภายนอก()
+    {
+        Console.WriteLine("กำลังเชื่อมต่อกับเครื่องชำระเงินภายนอก...");
+        // Logic for integrating with external payment devices (e.g., via API, SDK)
+        return true; // สมมติว่าเชื่อมต่อสำเร็จ
+    }
+
+    // --- 47. ระบบบันทึกและรายงานการขายตามพนักงาน - ทำไปแล้วใน `ใบเสร็จ` และ `ปิดกะ`
+
+    // --- 48. รองรับการปรับเปลี่ยนราคาสินค้าแบบทันที (Price Override)
+    public void ปรับเปลี่ยนราคาสินค้าในตะกร้า(string รหัสสินค้า, decimal ราคาใหม่)
+    {
+        var รายการ = ตะกร้าสินค้า.FirstOrDefault(x => x.สินค้า.รหัสสินค้า == รหัสสินค้า);
+        if (รายการ != null)
+        {
+            // ควรมีการบันทึกเหตุผลการปรับเปลี่ยนราคา
+            รายการ.สินค้า.ราคาต่อหน่วย = ราคาใหม่; // ปรับราคาในรายการตะกร้า (ชั่วคราว)
+            รายการ.ราคารวมรายการ = รายการ.สินค้า.ราคาต่อหน่วย * รายการ.จำนวน;
+            Console.WriteLine($"ปรับเปลี่ยนราคา {รายการ.สินค้า.ชื่อสินค้า} เป็น {ราคาใหม่:N2}");
+        }
+    }
+
+    // --- 49. ระบบจัดการภาษีในกรณีสินค้าหลายประเภท (VAT แยกตามสินค้า) - โครงสร้างอยู่ใน `สินค้า` และ `คำนวณภาษีมูลค่าเพิ่ม`
+
+    // --- 50. ระบบจัดการและคืนเงินเครดิต (Credit Memo)
+    public void ออกใบสำคัญรับคืน(ลูกค้า ลูกค้า, decimal จำนวนเงิน)
+    {
+        if (ลูกค้า != null)
+        {
+            ลูกค้า.วงเงินเครดิตคงเหลือ += จำนวนเงิน;
+            Console.WriteLine($"ออกใบสำคัญรับคืน {จำนวนเงิน:N2} บาท ให้กับลูกค้า {ลูกค้า.ชื่อลูกค้า} (วงเงินเครดิตปัจจุบัน: {ลูกค้า.วงเงินเครดิตคงเหลือ:N2})");
+            // บันทึกข้อมูลใบสำคัญรับคืน
+        }
+    }
+}แน่นอนครับ! นี่คืออีก 50 ข้อของ Logic และฟีเจอร์สำหรับระบบ POS พร้อมโครงสร้างโค้ด C# .NET แบบย่อเช่นเคยครับ
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+// การประกาศคลาสพื้นฐานที่มีอยู่แล้ว (ไม่ได้ใส่รายละเอียดทั้งหมดซ้ำ เพื่อความกระชับ)
+public class สินค้า {
+    public string รหัสสินค้า { get; set; }
+    public string ชื่อสินค้า { get; set; }
+    public decimal ราคาต่อหน่วย { get; set; }
+    public int จำนวนคงเหลือ { get; set; }
+    public string หน่วยนับ { get; set; }
+    public DateTime วันหมดอายุ { get; set; }
+    public decimal ราคาพิเศษสมาชิก { get; set; }
+    public string หมวดหมู่ { get; set; }
+    public decimal อัตราภาษี { get; set; }
+    public bool เป็นสินค้าบริการ { get; set; } // ข้อ 54
+    public decimal ต้นทุนสินค้า { get; set; } // ข้อ 55
+    public string สถานะสินค้า { get; set; } // ข้อ 60
+    public int จุดสั่งซื้อ { get; set; } // ข้อ 66
+    public string รูปภาพสินค้า { get; set; } // ข้อ 78
+    public List<string> แท็กสินค้า { get; set; } // ข้อ 94
+    public List<ข้อมูลตัวเลือกสินค้า> ตัวเลือกสินค้า { get; set; } // ข้อ 96
+}
+
+public class ข้อมูลตัวเลือกสินค้า { // ข้อ 96
+    public string ชื่อตัวเลือก { get; set; } // เช่น "สี", "ขนาด"
+    public List<string> ค่าตัวเลือก { get; set; } // เช่น "แดง", "น้ำเงิน", "S", "M"
+    public Dictionary<string, decimal> ราคาเพิ่มลดตามตัวเลือก { get; set; } // ราคาที่ปรับตามตัวเลือกย่อย
+    public Dictionary<string, int> สต็อกตามตัวเลือก { get; set; } // สต็อกแยกตามตัวเลือกย่อย
+}
+
+public class รายการสินค้าในตะกร้า {
+    public สินค้า สินค้า { get; set; }
+    public int จำนวน { get; set; }
+    public decimal ราคารวมรายการ { get; set; }
+    public decimal ส่วนลดรายการ { get; set; }
+    public string รหัสส่วนลดที่ใช้ { get; set; } // ข้อ 51
+    public List<string> ตัวเลือกที่เลือก { get; set; } // ข้อ 96
+}
+
+public class ใบเสร็จ {
+    public string เลขที่บิล { get; set; }
+    public DateTime วันที่เวลาขาย { get; set; }
+    public List<รายการสินค้าในตะกร้า> รายการสินค้า { get; set; }
+    public decimal ยอดรวมก่อนหักส่วนลด { get; set; }
+    public decimal ส่วนลดรวม { get; set; }
+    public decimal ยอดรวมหลังหักส่วนลด { get; set; }
+    public decimal ภาษีมูลค่าเพิ่ม { get; set; }
+    public decimal ยอดสุทธิที่ต้องชำระ { get; set; }
+    public string ช่องทางการชำระเงิน { get; set; }
+    public decimal ยอดเงินที่รับมา { get; set; }
+    public decimal เงินทอน { get; set; }
+    public ลูกค้า ข้อมูลลูกค้า { get; set; }
+    public พนักงาน ข้อมูลพนักงานขาย { get; set; }
+    public string สถานะบิล { get; set; }
+    public string หมายเหตุ { get; set; }
+    public decimal ค่าจัดส่ง { get; set; }
+    public string รหัสกะที่ขาย { get; set; } // ข้อ 56
+    public string หมายเลขเครื่อง POS { get; set; } // ข้อ 57
+    public string หมายเลขลูกค้าอ้างอิง { get; set; } // ข้อ 62
+    public decimal คะแนนสะสมที่ใช้ { get; set; } // ข้อ 65
+    public string วิธีการจัดส่ง { get; set; } // ข้อ 71
+    public DateTime? กำหนดส่งมอบ { get; set; } // ข้อ 72
+    public string หมายเหตุการยกเลิก { get; set; } // ข้อ 80
+    public Dictionary<string, decimal> การชำระเงินแยกส่วน { get; set; } // ข้อ 81
+    public string เลขที่อ้างอิงการทำรายการ { get; set; } // ข้อ 86
+    public string รหัสโปรโมชั่นที่ใช้ { get; set; } // ข้อ 92
+}
+
+public class ลูกค้า {
+    public string รหัสลูกค้า { get; set; }
+    public string ชื่อลูกค้า { get; set; }
+    public int แต้มสะสม { get; set; }
+    public List<ใบเสร็จ> ประวัติการซื้อ { get; set; }
+    public decimal วงเงินเครดิตคงเหลือ { get; set; }
+    public string เบอร์โทรศัพท์ { get; set; } // ข้อ 61
+    public string อีเมล { get; set; } // ข้อ 61
+    public string ที่อยู่ { get; set; } // ข้อ 61
+    public DateTime วันเกิด { get; set; } // ข้อ 77
+}
+
+public class พนักงาน {
+    public string รหัสพนักงาน { get; set; }
+    public string ชื่อพนักงาน { get; set; }
+    public string รหัสผ่าน { get; set; }
+    public string สิทธิ์การใช้งาน { get; set; }
+    public string แผนก { get; set; } // ข้อ 73
+}
+
+public class โปรโมชั่น {
+    public string รหัสโปรโมชั่น { get; set; }
+    public string ชื่อโปรโมชั่น { get; set; }
+    public string ประเภทโปรโมชั่น { get; set; }
+    public Func<List<รายการสินค้าในตะกร้า>, List<รายการสินค้าในตะกร้า>> คำนวณส่วนลดโปรโมชั่น { get; set; } // เปลี่ยน return type เป็น List<รายการสินค้าในตะกร้า> เพื่อจัดการส่วนลดในแต่ละรายการ
+    public DateTime วันที่เริ่มต้น { get; set; } // ข้อ 74
+    public DateTime วันที่สิ้นสุด { get; set; } // ข้อ 74
+    public decimal ยอดซื้อขั้นต่ำ { get; set; } // ข้อ 75
+    public List<string> สินค้าที่ร่วมรายการ { get; set; } // ข้อ 91
+    public List<string> สินค้าที่ไม่ร่วมรายการ { get; set; } // ข้อ 91
+}
+
+public class คูปอง {
+    public string รหัสคูปอง { get; set; }
+    public decimal มูลค่าส่วนลด { get; set; }
+    public DateTime วันหมดอายุ { get; set; }
+    public bool ใช้งานแล้ว { get; set; }
+    public int จำนวนครั้งที่ใช้ได้ { get; set; } // ข้อ 85
+    public int จำนวนครั้งที่ใช้งานไปแล้ว { get; set; } // ข้อ 85
+    public string ประเภทคูปอง { get; set; } // ข้อ 87 เช่น "เปอร์เซ็นต์", "ยอดเงินคงที่"
+    public decimal เงื่อนไขยอดซื้อขั้นต่ำ { get; set; } // ข้อ 88
+}
+
+public class ข้อมูลกะ
+{
+    public string รหัสกะ { get; set; }
+    public DateTime เวลาเปิดกะ { get; set; }
+    public DateTime? เวลาปิดกะ { get; set; }
+    public พนักงาน พนักงานเปิดกะ { get; set; }
+    public พนักงาน พนักงานปิดกะ { get; set; }
+    public decimal ยอดขายเงินสด { get; set; }
+    public decimal ยอดขายบัตรเครดิต { get; set; }
+    public decimal ยอดรวมในกะ { get; set; }
+    public decimal เงินสดเริ่มต้นกะ { get; set; } // ข้อ 83
+    public decimal เงินสดปิดกะ { get; set; } // ข้อ 83
+    public decimal เงินเบิกจ่ายในกะ { get; set; } // ข้อ 84
+    public List<ใบเสร็จ> บิลที่ขายในกะ { get; set; }
+}
+
+public class ข้อมูลผู้จัดหา // ข้อ 67
+{
+    public string รหัสผู้จัดหา { get; set; }
+    public string ชื่อผู้จัดหา { get; set; }
+    public string เบอร์โทรศัพท์ { get; set; }
+    public string ที่อยู่ { get; set; }
+}
+
+public class รายการรับสินค้า // ข้อ 68
+{
+    public string เลขที่รับสินค้า { get; set; }
+    public DateTime วันที่รับ { get; set; }
+    public ข้อมูลผู้จัดหา ผู้จัดหา { get; set; }
+    public List<สินค้า> รายการสินค้าที่รับ { get; set; }
+    public พนักงาน ผู้รับสินค้า { get; set; }
+}
+
+public class ใบเสนอราคา // ข้อ 99
+{
+    public string เลขที่ใบเสนอราคา { get; set; }
+    public DateTime วันที่สร้าง { get; set; }
+    public ลูกค้า ข้อมูลลูกค้า { get; set; }
+    public List<รายการสินค้าในตะกร้า> รายการสินค้า { get; set; }
+    public decimal ยอดรวมสุทธิ { get; set; }
+    public DateTime วันหมดอายุใบเสนอราคา { get; set; }
+    public string สถานะ { get; set; } // เช่น "รออนุมัติ", "อนุมัติแล้ว", "แปลงเป็นบิลขายแล้ว"
+}
+
+public class ระบบPOS
+{
+    private List<สินค้า> คลังสินค้า;
+    private List<รายการสินค้าในตะกร้า> ตะกร้าสินค้า;
+    private List<ใบเสร็จ> ประวัติการขาย;
+    private List<ลูกค้า> ฐานข้อมูลลูกค้า;
+    private List<พนักงาน> ฐานข้อมูลพนักงาน;
+    private List<โปรโมชั่น> รายการโปรโมชั่น;
+    private List<คูปอง> รายการคูปอง;
+    private List<ข้อมูลกะ> ประวัติกะขาย; // ข้อ 56
+    private List<ข้อมูลผู้จัดหา> ฐานข้อมูลผู้จัดหา; // ข้อ 67
+    private List<รายการรับสินค้า> ประวัติการรับสินค้า; // ข้อ 68
+    private List<ใบเสนอราคา> รายการใบเสนอราคา; // ข้อ 99
+
+    private พนักงาน พนักงานที่เข้าสู่ระบบปัจจุบัน;
+    private string คลังสินค้าปัจจุบัน;
+    private ข้อมูลกะ กะปัจจุบัน; // ข้อ 56
+
+    public ระบบPOS()
+    {
+        คลังสินค้า = new List<สินค้า>();
+        ตะกร้าสินค้า = new List<รายการสินค้าในตะกร้า>();
+        ประวัติการขาย = new List<ใบเสร็จ>();
+        ฐานข้อมูลลูกค้า = new List<ลูกค้า>();
+        ฐานข้อมูลพนักงาน = new List<พนักงาน>();
+        รายการโปรโมชั่น = new List<โปรโมชั่น>();
+        รายการคูปอง = new List<คูปอง>();
+        ประวัติกะขาย = new List<ข้อมูลกะ>();
+        ฐานข้อมูลผู้จัดหา = new List<ข้อมูลผู้จัดหา>();
+        ประวัติการรับสินค้า = new List<รายการรับสินค้า>();
+        รายการใบเสนอราคา = new List<ใบเสนอราคา>();
+
+        คลังสินค้าปัจจุบัน = "คลังหลัก";
+    }
+
+    // --- 51. รองรับส่วนลดเป็นเปอร์เซ็นต์ หรือจำนวนเงินคงที่บนบิล
+    // Logic นี้สามารถทำได้ในการคำนวณ `ส่วนลดรวม` ของใบเสร็จ หรือเพิ่ม field ในใบเสร็จ
+    public void เพิ่มส่วนลดท้ายบิล(decimal จำนวนส่วนลด, bool เป็นเปอร์เซ็นต์ = false)
+    {
+        decimal ยอดรวมก่อนหัก = ตะกร้าสินค้า.Sum(x => x.ราคารวมรายการ - x.ส่วนลดรายการ);
+        if (เป็นเปอร์เซ็นต์)
+        {
+            // อาจจะบันทึกส่วนลดนี้เป็นส่วนลดรวมของบิล
+            Console.WriteLine($"เพิ่มส่วนลดท้ายบิล {จำนวนส่วนลด}% ({ยอดรวมก่อนหัก * (จำนวนส่วนลด / 100):N2} บาท)");
+        }
+        else
+        {
+            Console.WriteLine($"เพิ่มส่วนลดท้ายบิล {จำนวนส่วนลด:N2} บาท");
+        }
+        // Logic นี้จะถูกนำไปใช้ในขั้นตอนการคำนวณใบเสร็จ
+    }
+
+    // --- 52. ระบบแสดงข้อมูลสินค้าคงเหลือ ณ จุดขายแบบเรียลไทม์
+    public int ตรวจสอบสต็อกเรียลไทม์(string รหัสสินค้า)
+    {
+        var สินค้า = คลังสินค้า.FirstOrDefault(s => s.รหัสสินค้า == รหัสสินค้า);
+        return สินค้า?.จำนวนคงเหลือ ?? 0;
+    }
+
+    // --- 53. ระบบจัดการผู้ใช้และรหัสผ่านสำหรับเจ้าของร้าน/ผู้จัดการ
+    // ทำไปแล้วในส่วน `พนักงาน` และ `ล็อกอิน` โดยใช้สิทธิ์ "Admin" หรือ "Manager"
+
+    // --- 54. รองรับการขายสินค้าบริการ (ไม่มีสต็อก)
+    // เพิ่ม field `เป็นสินค้าบริการ` ในคลาส `สินค้า`
+    public void เพิ่มสินค้าบริการ(สินค้า สินค้าบริการ, int จำนวน)
+    {
+        if (สินค้าบริการ.เป็นสินค้าบริการ)
+        {
+            ตะกร้าสินค้า.Add(new รายการสินค้าในตะกร้า
+            {
+                สินค้า = สินค้าบริการ,
+                จำนวน = จำนวน,
+                ราคารวมรายการ = สินค้าบริการ.ราคาต่อหน่วย * จำนวน
+            });
+            Console.WriteLine($"เพิ่มบริการ {สินค้าบริการ.ชื่อสินค้า} ลงตะกร้าแล้ว");
+        }
+        else
+        {
+            Console.WriteLine("สินค้าไม่ใช่บริการ");
+        }
+    }
+
+    // --- 55. ระบบคำนวณกำไรขั้นต้นจากการขายสินค้าแต่ละรายการ
+    public decimal คำนวณกำไรขั้นต้นรายการ(รายการสินค้าในตะกร้า รายการ)
+    {
+        return (รายการ.ราคารวมรายการ - รายการ.ส่วนลดรายการ) - (รายการ.สินค้า.ต้นทุนสินค้า * รายการ.จำนวน);
+    }
+
+    // --- 56. ระบบบันทึกกะการทำงานของพนักงาน และยอดขายแต่ละกะ
+    // เพิ่ม `ประวัติกะขาย` และ `กะปัจจุบัน` ในระบบPOS
+    public void เปิดกะ(พนักงาน พนักงานเปิดกะ, decimal เงินสดเริ่มต้น)
+    {
+        if (กะปัจจุบัน != null)
+        {
+            Console.WriteLine("มีกะที่กำลังทำงานอยู่ กรุณาปิดกะก่อน");
             return;
         }
-        // In real app, hash password
-        _users.Add(new User { Id = _users.Count + 1, Username = username, PasswordHash = $"hashed_{password}", Role = role });
-        Console.WriteLine($"User '{username}' with role '{role}' registered.");
-    }
-
-    // 32. ระบบกำหนดสิทธิ์ผู้ใช้งาน (Admin, Cashier, Manager)
-    public bool CheckUserPermission(User user, UserRole requiredRole)
-    {
-        return user.Role <= requiredRole; // Simple hierarchy: Admin > Manager > Cashier
-    }
-
-    // 33. ระบบล็อกอินด้วยรหัสผ่านหรือบาร์โค้ดพนักงาน
-    public User Login(string username, string password) // Or barcode
-    {
-        // In real app, verify hashed password
-        var user = _users.FirstOrDefault(u => u.Username == username && u.PasswordHash == $"hashed_{password}");
-        if (user != null)
+        กะปัจจุบัน = new ข้อมูลกะ
         {
-            Console.WriteLine($"User '{username}' logged in successfully.");
-            return user;
+            รหัสกะ = Guid.NewGuid().ToString(),
+            เวลาเปิดกะ = DateTime.Now,
+            พนักงานเปิดกะ = พนักงานเปิดกะ,
+            เงินสดเริ่มต้นกะ = เงินสดเริ่มต้น, // ข้อ 83
+            บิลที่ขายในกะ = new List<ใบเสร็จ>()
+        };
+        ประวัติกะขาย.Add(กะปัจจุบัน);
+        Console.WriteLine($"กะขาย {กะปัจจุบัน.รหัสกะ} เปิดโดย {พนักงานเปิดกะ.ชื่อพนักงาน} เมื่อ {DateTime.Now} ด้วยเงินสดเริ่มต้น {เงินสดเริ่มต้น:N2}");
+    }
+
+    public void ปิดกะ(พนักงาน พนักงานปิดกะ, decimal เงินสดปิดกะ)
+    {
+        if (กะปัจจุบัน == null)
+        {
+            Console.WriteLine("ไม่มีกะที่กำลังทำงานอยู่");
+            return;
         }
-        Console.WriteLine("Invalid username or password.");
+        กะปัจจุบัน.เวลาปิดกะ = DateTime.Now;
+        กะปัจจุบัน.พนักงานปิดกะ = พนักงานปิดกะ;
+        กะปัจจุบัน.ยอดขายเงินสด = กะปัจจุบัน.บิลที่ขายในกะ.Where(บิล => บิล.ช่องทางการชำระเงิน == "เงินสด").Sum(บิล => บิล.ยอดสุทธิที่ต้องชำระ);
+        กะปัจจุบัน.ยอดขายบัตรเครดิต = กะปัจจุบัน.บิลที่ขายในกะ.Where(บิล => บิล.ช่องทางการชำระเงิน == "บัตรเครดิต").Sum(บิล => บิล.ยอดสุทธิที่ต้องชำระ);
+        กะปัจจุบัน.ยอดรวมในกะ = กะปัจจุบัน.บิลที่ขายในกะ.Sum(บิล => บิล.ยอดสุทธิที่ต้องชำระ);
+        กะปัจจุบัน.เงินสดปิดกะ = เงินสดปิดกะ; // ข้อ 83
+
+        Console.WriteLine($"กะขาย {กะปัจจุบัน.รหัสกะ} ปิดโดย {พนักงานปิดกะ.ชื่อพนักงาน} เมื่อ {DateTime.Now}");
+        Console.WriteLine($"สรุปยอดขายในกะ: เงินสด {กะปัจจุบัน.ยอดขายเงินสด:N2}, บัตรเครดิต {กะปัจจุบัน.ยอดขายบัตรเครดิต:N2}, ยอดรวม {กะปัจจุบัน.ยอดรวมในกะ:N2}");
+        Console.WriteLine($"เงินสดเริ่มต้น: {กะปัจจุบัน.เงินสดเริ่มต้นกะ:N2}, เงินสดปิดกะ: {กะปัจจุบัน.เงินสดปิดกะ:N2}");
+        กะปัจจุบัน = null; // ปิดกะปัจจุบัน
+    }
+
+    // --- 57. รองรับการใช้งานหลายเครื่อง POS และการซิงค์ข้อมูลระหว่างเครื่อง
+    // เพิ่ม `หมายเลขเครื่อง POS` ใน `ใบเสร็จ`
+    // Logic การซิงค์จะอยู่ที่ระดับโครงสร้างระบบโดยรวม
+
+    // --- 58. ระบบรายงานยอดขายตามช่องทางการชำระเงิน
+    public Dictionary<string, decimal> รายงานยอดขายตามช่องทาง(DateTime วันที่เริ่มต้น, DateTime วันที่สิ้นสุด)
+    {
+        return ประวัติการขาย
+            .Where(บิล => บิล.วันที่เวลาขาย >= วันที่เริ่มต้น && บิล.วันที่เวลาขาย <= วันที่สิ้นสุด)
+            .GroupBy(บิล => บิล.ช่องทางการชำระเงิน)
+            .ToDictionary(กลุ่ม => กลุ่ม.Key, กลุ่ม => กลุ่ม.Sum(บิล => บิล.ยอดสุทธิที่ต้องชำระ));
+    }
+
+    // --- 59. ระบบรายงานกำไรขาดทุนเบื้องต้น
+    public decimal คำนวณกำไรขาดทุนเบื้องต้น(DateTime วันที่เริ่มต้น, DateTime วันที่สิ้นสุด)
+    {
+        decimal ยอดขายรวม = ประวัติการขาย
+            .Where(บิล => บิล.วันที่เวลาขาย >= วันที่เริ่มต้น && บิล.วันที่เวลาขาย <= วันที่สิ้นสุด)
+            .Sum(บิล => بิล.ยอดสุทธิที่ต้องชำระ);
+
+        decimal ต้นทุนขายรวม = ประวัติการขาย
+            .Where(บิล => بิล.วันที่เวลาขาย >= วันที่เริ่มต้น && بิล.วันที่เวลาขาย <= วันที่สิ้นสุด)
+            .SelectMany(บิล => บิล.รายการสินค้า)
+            .Sum(รายการ => รายการ.สินค้า.ต้นทุนสินค้า * รายการ.จำนวน);
+
+        return ยอดขายรวม - ต้นทุนขายรวม;
+    }
+
+    // --- 60. ระบบจัดการสถานะสินค้า (เช่น พร้อมขาย, ไม่พร้อมขาย, เลิกผลิต)
+    // เพิ่ม field `สถานะสินค้า` ใน `สินค้า`
+    public void เปลี่ยนสถานะสินค้า(string รหัสสินค้า, string สถานะใหม่)
+    {
+        var สินค้า = คลังสินค้า.FirstOrDefault(s => s.รหัสสินค้า == รหัสสินค้า);
+        if (สินค้า != null)
+        {
+            สินค้า.สถานะสินค้า = สถานะใหม่;
+            Console.WriteLine($"เปลี่ยนสถานะสินค้า {สินค้า.ชื่อสินค้า} เป็น {สถานะใหม่} แล้ว");
+        }
+    }
+
+    // --- 61. บันทึกข้อมูลลูกค้าเพิ่มเติม (เบอร์โทร, อีเมล, ที่อยู่)
+    // เพิ่ม field ใน `ลูกค้า`
+
+    // --- 62. ระบบรองรับการค้นหาลูกค้าด้วยเบอร์โทรศัพท์ หรือชื่อ
+    public List<ลูกค้า> ค้นหาลูกค้า(string คำค้นหา)
+    {
+        return ฐานข้อมูลลูกค้า.Where(c =>
+            c.ชื่อลูกค้า.Contains(คำค้นหา, StringComparison.OrdinalIgnoreCase) ||
+            c.เบอร์โทรศัพท์.Contains(คำค้นหา) ||
+            c.รหัสลูกค้า.Contains(คำค้นหา, StringComparison.OrdinalIgnoreCase)
+        ).ToList();
+    }
+
+    // --- 63. ระบบรองรับการเพิ่ม/แก้ไขข้อมูลลูกค้า ณ จุดขาย
+    public void เพิ่มหรือแก้ไขลูกค้า(ลูกค้า ลูกค้าที่แก้ไข)
+    {
+        var ลูกค้าเดิม = ฐานข้อมูลลูกค้า.FirstOrDefault(c => c.รหัสลูกค้า == ลูกค้าที่แก้ไข.รหัสลูกค้า);
+        if (ลูกค้าเดิม == null)
+        {
+            ฐานข้อมูลลูกค้า.Add(ลูกค้าที่แก้ไข);
+            Console.WriteLine($"เพิ่มลูกค้า {ลูกค้าที่แก้ไข.ชื่อลูกค้า} เรียบร้อยแล้ว");
+        }
+        else
+        {
+            // อัพเดตข้อมูล
+            ลูกค้าเดิม.ชื่อลูกค้า = ลูกค้าที่แก้ไข.ชื่อลูกค้า;
+            ลูกค้าเดิม.เบอร์โทรศัพท์ = ลูกค้าที่แก้ไข.เบอร์โทรศัพท์;
+            ลูกค้าเดิม.อีเมล = ลูกค้าที่แก้ไข.อีเมล;
+            ลูกค้าเดิม.ที่อยู่ = ลูกค้าที่แก้ไข.ที่อยู่;
+            Console.WriteLine($"แก้ไขข้อมูลลูกค้า {ลูกค้าที่แก้ไข.ชื่อลูกค้า} เรียบร้อยแล้ว");
+        }
+    }
+
+    // --- 64. ระบบการสะสมและแลกแต้มสะสมของลูกค้า
+    // สะสมทำไปแล้วใน `ชำระเงิน`
+    public void แลกแต้มสะสม(ลูกค้า ลูกค้า, int จำนวนแต้มที่แลก)
+    {
+        if (ลูกค้า.แต้มสะสม >= จำนวนแต้มที่แลก)
+        {
+            ลูกค้า.แต้มสะสม -= จำนวนแต้มที่แลก;
+            // อาจจะแปลงแต้มเป็นส่วนลดแล้วนำไปใช้กับบิล
+            Console.WriteLine($"ลูกค้า {ลูกค้า.ชื่อลูกค้า} แลก {จำนวนแต้มที่แลก} แต้ม (เหลือ {ลูกค้า.แต้มสะสม} แต้ม)");
+            // เพิ่มส่วนลดเข้าตะกร้าสินค้าหรือบิล
+        }
+        else
+        {
+            Console.WriteLine("แต้มสะสมไม่เพียงพอ");
+        }
+    }
+
+    // --- 65. ระบบแสดงยอดแต้มสะสมคงเหลือของลูกค้าที่กำลังซื้อ
+    public int แสดงแต้มสะสมลูกค้า(ลูกค้า ลูกค้า)
+    {
+        return ลูกค้า?.แต้มสะสม ?? 0;
+    }
+
+    // --- 66. ระบบแจ้งเตือนเมื่อสต็อกสินค้าถึงจุดสั่งซื้อ (Reorder Point)
+    // เพิ่ม field `จุดสั่งซื้อ` ใน `สินค้า`
+    public List<สินค้า> สินค้าที่ต้องสั่งซื้อ()
+    {
+        return คลังสินค้า.Where(s => s.จำนวนคงเหลือ <= s.จุดสั่งซื้อ).ToList();
+    }
+
+    // --- 67. ระบบจัดการข้อมูลผู้จัดหาสินค้า (Supplier Management)
+    // เพิ่มคลาส `ข้อมูลผู้จัดหา` และ List ในระบบPOS
+
+    // --- 68. ระบบบันทึกการรับสินค้าเข้าสต็อก
+    // เพิ่มคลาส `รายการรับสินค้า` และ List ในระบบPOS
+    public void รับสินค้าเข้าสต็อก(รายการรับสินค้า รายการรับ)
+    {
+        ประวัติการรับสินค้า.Add(รายการรับ);
+        foreach (var สินค้าที่รับ in รายการรับ.รายการสินค้าที่รับ)
+        {
+            var สินค้าในคลัง = คลังสินค้า.FirstOrDefault(s => s.รหัสสินค้า == สินค้าที่รับ.รหัสสินค้า);
+            if (สินค้าในคลัง != null)
+            {
+                สินค้าในคลัง.จำนวนคงเหลือ += สินค้าที่รับ.จำนวนคงเหลือ; // สมมติว่าจำนวนคงเหลือในรายการรับคือจำนวนที่รับเข้ามา
+                Console.WriteLine($"รับสินค้า {สินค้าที่รับ.ชื่อสินค้า} เข้าสต็อก {สินค้าที่รับ.จำนวนคงเหลือ} ชิ้น");
+            }
+            else
+            {
+                // หากเป็นสินค้าใหม่ อาจต้องเพิ่มเข้าคลังสินค้า
+                คลังสินค้า.Add(สินค้าที่รับ);
+                Console.WriteLine($"เพิ่มสินค้าใหม่ {สินค้าที่รับ.ชื่อสินค้า} เข้าคลังสินค้า {สินค้าที่รับ.จำนวนคงเหลือ} ชิ้น");
+            }
+        }
+    }
+
+    // --- 69. ระบบรายงานประวัติการรับสินค้า
+    public List<รายการรับสินค้า> ดูประวัติการรับสินค้า(DateTime วันที่เริ่มต้น, DateTime วันที่สิ้นสุด)
+    {
+        return ประวัติการรับสินค้า.Where(r => r.วันที่รับ >= วันที่เริ่มต้น && r.วันที่รับ <= วันที่สิ้นสุด).ToList();
+    }
+
+    // --- 70. ระบบรายงานสรุปกำไรต่อสินค้า/หมวดหมู่
+    public Dictionary<string, decimal> รายงานกำไรต่อหมวดหมู่(DateTime วันที่เริ่มต้น, DateTime วันที่สิ้นสุด)
+    {
+        return ประวัติการขาย
+            .Where(บิล => บิล.วันที่เวลาขาย >= วันที่เริ่มต้น && บิล.วันที่เวลาขาย <= วันที่สิ้นสุด)
+            .SelectMany(บิล => บิล.รายการสินค้า)
+            .GroupBy(รายการ => รายการ.สินค้า.หมวดหมู่)
+            .ToDictionary(
+                กลุ่ม => กลุ่ม.Key,
+                กลุ่ม => กลุ่ม.Sum(รายการ => คำนวณกำไรขั้นต้นรายการ(รายการ))
+            );
+    }
+
+    // --- 71. รองรับวิธีการจัดส่งสินค้า (เช่น รับหน้าร้าน, จัดส่ง)
+    // เพิ่ม field `วิธีการจัดส่ง` ใน `ใบเสร็จ`
+
+    // --- 72. ระบบกำหนดวัน-เวลาส่งมอบสินค้า
+    // เพิ่ม field `กำหนดส่งมอบ` ใน `ใบเสร็จ`
+
+    // --- 73. ระบบจัดการข้อมูลพนักงาน (แผนก, ตำแหน่ง)
+    // เพิ่ม field `แผนก` ใน `พนักงาน`
+
+    // --- 74. กำหนดวันเริ่มต้น-วันสิ้นสุดของโปรโมชั่น
+    // เพิ่ม field ใน `โปรโมชั่น`
+
+    // --- 75. กำหนดเงื่อนไขยอดซื้อขั้นต่ำสำหรับโปรโมชั่น
+    // เพิ่ม field ใน `โปรโมชั่น`
+
+    // --- 76. ระบบจัดการภาษีแยกตามประเภทลูกค้า (เช่น ลูกค้าทั่วไป, ลูกค้าส่ง)
+    // ซับซ้อนขึ้นอยู่กับโครงสร้างภาษีที่ต้องการ
+
+    // --- 77. ระบบคำนวณส่วนลดพิเศษวันเกิดสำหรับลูกค้า
+    public decimal คำนวณส่วนลดวันเกิด(ลูกค้า ลูกค้า, decimal ยอดรวม)
+    {
+        if (ลูกค้า.วันเกิด.Month == DateTime.Today.Month && ลูกค้า.วันเกิด.Day == DateTime.Today.Day)
+        {
+            return ยอดรวม * 0.10m; // สมมติลด 10%
+        }
+        return 0;
+    }
+
+    // --- 78. ระบบแสดงรูปภาพสินค้าในหน้าจอ POS
+    // เพิ่ม field `รูปภาพสินค้า` ใน `สินค้า`
+
+    // --- 79. ระบบจัดการตารางเวรทำงานของพนักงาน
+    // ต้องมีคลาสเฉพาะสำหรับจัดการตารางเวร และฟังก์ชันที่เกี่ยวข้อง
+
+    // --- 80. บันทึกเหตุผลการยกเลิกบิล
+    // เพิ่ม field `หมายเหตุการยกเลิก` ใน `ใบเสร็จ`
+
+    // --- 81. รองรับการชำระเงินแบบผสม (เงินสดบางส่วน + บัตรเครดิตบางส่วน)
+    // เพิ่ม Dictionary `การชำระเงินแยกส่วน` ใน `ใบเสร็จ`
+    public ใบเสร็จ ชำระเงินแบบผสม(Dictionary<string, decimal> ยอดเงินแต่ละช่องทาง, ลูกค้า ลูกค้าที่ซื้อ = null, decimal ค่าขนส่ง = 0)
+    {
+        decimal ยอดรวมที่รับมา = ยอดเงินแต่ละช่องทาง.Sum(kv => kv.Value);
+        // Logic คำนวณใบเสร็จเหมือนเดิม
+        var ใบเสร็จใหม่ = ชำระเงิน("ผสม", ยอดรวมที่รับมา, ลูกค้าที่ซื้อ, ค่าขนส่ง);
+        ใบเสร็จใหม่.การชำระเงินแยกส่วน = ยอดเงินแต่ละช่องทาง;
+        return ใบเสร็จใหม่;
+    }
+
+    // --- 82. ระบบแจ้งเตือนเมื่อไม่สามารถเชื่อมต่อเครื่องพิมพ์ใบเสร็จได้
+    public bool ตรวจสอบสถานะเครื่องพิมพ์()
+    {
+        // Logic for checking printer status
+        bool เชื่อมต่อได้ = true; // สมมติ
+        if (!เชื่อมต่อได้)
+        {
+            Console.WriteLine("ไม่สามารถเชื่อมต่อเครื่องพิมพ์ใบเสร็จได้");
+        }
+        return เชื่อมต่อได้;
+    }
+
+    // --- 83. ระบบบันทึกเงินสดเริ่มต้นกะ และเงินสดปิดกะ (Cash Drawer Management)
+    // เพิ่ม field ใน `ข้อมูลกะ`
+
+    // --- 84. ระบบบันทึกรายการเงินเบิก-จ่ายในกะ (Petty Cash)
+    // เพิ่ม field ใน `ข้อมูลกะ` และอาจจะต้องมี List<รายการเบิกจ่าย> แยกต่างหาก
+
+    // --- 85. ระบบจำกัดจำนวนครั้งในการใช้คูปองต่อลูกค้า
+    // เพิ่ม field ใน `คูปอง`
+
+    // --- 86. บันทึกเลขที่อ้างอิงการทำรายการบัตรเครดิต/โอนเงิน
+    // เพิ่ม field ใน `ใบเสร็จ`
+
+    // --- 87. กำหนดประเภทของคูปอง (เช่น คูปองส่วนลดเปอร์เซ็นต์, คูปองส่วนลดจำนวนเงิน)
+    // เพิ่ม field ใน `คูปอง`
+
+    // --- 88. กำหนดเงื่อนไขยอดซื้อขั้นต่ำในการใช้คูปอง
+    // เพิ่ม field ใน `คูปอง`
+
+    // --- 89. ระบบแจ้งเตือนเมื่อพนักงานพยายามทำรายการเกินสิทธิ์
+    public bool ตรวจสอบสิทธิ์(พนักงาน พนักงาน, string การกระทำ)
+    {
+        if (พนักงาน == null) return false;
+        // Logic เพื่อตรวจสอบว่าพนักงานมีสิทธิ์ในการทำ `การกระทำ` หรือไม่
+        if (พนักงาน.สิทธิ์การใช้งาน == "Admin" || (พนักงาน.สิทธิ์การใช้งาน == "Manager" && การกระทำ != "จัดการผู้ใช้งาน"))
+        {
+            return true;
+        }
+        Console.WriteLine($"พนักงาน {พนักงาน.ชื่อพนักงาน} ไม่มีสิทธิ์ในการ {การกระทำ}");
+        return false;
+    }
+
+    // --- 90. ระบบจัดการรายการโปรดของสินค้า (Favorite Items)
+    // ต้องมีโครงสร้างข้อมูลเพื่อเก็บรายการโปรดของพนักงานแต่ละคน
+    public List<สินค้า> รับรายการโปรดของพนักงาน(พนักงาน พนักงาน)
+    {
+        // ดึงข้อมูลรายการโปรดจากฐานข้อมูล/การตั้งค่าพนักงาน
+        return new List<สินค้า>(); // ตัวอย่าง
+    }
+
+    // --- 91. กำหนดสินค้าที่ร่วม/ไม่ร่วมรายการโปรโมชั่น
+    // เพิ่ม List ใน `โปรโมชั่น`
+
+    // --- 92. ระบบบันทึกโปรโมชั่นที่ถูกใช้ในบิลขาย
+    // เพิ่ม field `รหัสโปรโมชั่นที่ใช้` ใน `ใบเสร็จ`
+
+    // --- 93. ระบบบันทึกการเคลม/ประกันสินค้า
+    // ต้องมีคลาสเฉพาะสำหรับบันทึกข้อมูลการเคลม/ประกัน
+
+    // --- 94. รองรับการกำหนดแท็ก (Tags) ให้สินค้า
+    // เพิ่ม List<string> `แท็กสินค้า` ใน `สินค้า`
+
+    // --- 95. ระบบค้นหาสินค้าด้วยแท็ก
+    public List<สินค้า> ค้นหาสินค้าด้วยแท็ก(string แท็ก)
+    {
+        return คลังสินค้า.Where(s => s.แท็กสินค้า != null && s.แท็กสินค้า.Contains(แท็ก, StringComparer.OrdinalIgnoreCase)).ToList();
+    }
+
+    // --- 96. รองรับสินค้าที่มีตัวเลือก (Variant) เช่น สี, ขนาด
+    // เพิ่มคลาส `ข้อมูลตัวเลือกสินค้า` และ List ใน `สินค้า`
+
+    // --- 97. ระบบสร้างใบเสนอราคา (Quotation)
+    // เพิ่มคลาส `ใบเสนอราคา` และ List ในระบบPOS
+    public ใบเสนอราคา สร้างใบเสนอราคา(ลูกค้า ลูกค้า, List<รายการสินค้าในตะกร้า> รายการสินค้า, DateTime วันหมดอายุ)
+    {
+        var ใบเสนอราคาใหม่ = new ใบเสนอราคา
+        {
+            เลขที่ใบเสนอราคา = Guid.NewGuid().ToString(),
+            วันที่สร้าง = DateTime.Now,
+            ข้อมูลลูกค้า = ลูกค้า,
+            รายการสินค้า = new List<รายการสินค้าในตะกร้า>(รายการสินค้า),
+            ยอดรวมสุทธิ = ตะกร้าสินค้า.Sum(x => x.ราคารวมรายการ), // ต้องคำนวณส่วนลด/ภาษีด้วย
+            วันหมดอายุใบเสนอราคา = วันหมดอายุ,
+            สถานะ = "รออนุมัติ"
+        };
+        รายการใบเสนอราคา.Add(ใบเสนอราคาใหม่);
+        Console.WriteLine($"สร้างใบเสนอราคา {ใบเสนอราคาใหม่.เลขที่ใบเสนอราคา} สำหรับลูกค้า {ลูกค้า.ชื่อลูกค้า} เรียบร้อยแล้ว");
+        return ใบเสนอราคาใหม่;
+    }
+
+    // --- 98. ระบบแปลงใบเสนอราคาเป็นบิลขาย
+    public ใบเสร็จ แปลงใบเสนอราคาเป็นบิลขาย(string เลขที่ใบเสนอราคา)
+    {
+        var ใบเสนอราคา = รายการใบเสนอราคา.FirstOrDefault(q => q.เลขที่ใบเสนอราคา == เลขที่ใบเสนอราคา);
+        if (ใบเสนอราคา != null && ใบเสนอราคา.สถานะ == "อนุมัติแล้ว")
+        {
+            ตะกร้าสินค้า = new List<รายการสินค้าในตะกร้า>(ใบเสนอราคา.รายการสินค้า); // โหลดรายการจากใบเสนอราคาเข้าตะกร้า
+            var บิลใหม่ = ชำระเงิน("แปลงจากใบเสนอราคา", 0, ใบเสนอราคา.ข้อมูลลูกค้า); // ชำระเงินด้วยช่องทางที่เหมาะสม
+            บิลใหม่.หมายเหตุ = $"แปลงจากใบเสนอราคาเลขที่: {ใบเสนอราคา.เลขที่ใบเสนอราคา}";
+            ใบเสนอราคา.สถานะ = "แปลงเป็นบิลขายแล้ว";
+            Console.WriteLine($"แปลงใบเสนอราคา {เลขที่ใบเสนอราคา} เป็นบิลขาย {บิลใหม่.เลขที่บิล} เรียบร้อยแล้ว");
+            return บิลใหม่;
+        }
+        Console.WriteLine("ไม่สามารถแปลงใบเสนอราคาเป็นบิลขายได้");
         return null;
     }
 
-    // 34. รองรับการสแกนบาร์โค้ดสินค้าด้วยเครื่องอ่านบาร์โค้ด
-    public void ScanBarcode(string barcode)
+    // --- 99. ระบบอนุมัติ/ปฏิเสธใบเสนอราคา
+    public void อนุมัติใบเสนอราคา(string เลขที่ใบเสนอราคา)
     {
-        // This method would call AddItemToOrder internally after lookup
-        AddItemToOrder(barcode, 1);
-        // This assumes the barcode is the product code
-    }
-
-    // 35. ระบบบันทึกและจัดการข้อมูลลูกค้า (CRM)
-    public void AddOrUpdateCustomer(Customer customer)
-    {
-        var existingCustomer = _customers.FirstOrDefault(c => c.Id == customer.Id);
-        if (existingCustomer != null)
+        var ใบเสนอราคา = รายการใบเสนอราคา.FirstOrDefault(q => q.เลขที่ใบเสนอราคา == เลขที่ใบเสนอราคา);
+        if (ใบเสนอราคา != null)
         {
-            existingCustomer.Name = customer.Name;
-            existingCustomer.Phone = customer.Phone;
-            existingCustomer.Address = customer.Address;
-            Console.WriteLine($"Customer {customer.Name} updated.");
-        }
-        else
-        {
-            customer.Id = _customers.Count + 1;
-            _customers.Add(customer);
-            Console.WriteLine($"Customer {customer.Name} added.");
+            ใบเสนอราคา.สถานะ = "อนุมัติแล้ว";
+            Console.WriteLine($"อนุมัติใบเสนอราคา {เลขที่ใบเสนอราคา} แล้ว");
         }
     }
 
-    // 36. ระบบจองสินค้า (Hold Items) ไว้ก่อนชำระเงิน
-    public void HoldCurrentOrder()
+    // --- 100. ระบบรายงานยอดขายรายชั่วโมง/รายวัน/รายเดือน/รายปี
+    public Dictionary<string, decimal> รายงานยอดขายรายช่วงเวลา(string ประเภทรายงาน, DateTime วันที่เริ่มต้น, DateTime วันที่สิ้นสุด)
     {
-        if (CurrentOrder.Items.Any())
+        var ยอดขายตามช่วงเวลา = new Dictionary<string, decimal>();
+        var บิลที่กรองแล้ว = ประวัติการขาย.Where(บิล => บิล.วันที่เวลาขาย >= วันที่เริ่มต้น && บิล.วันที่เวลาขาย <= วันที่สิ้นสุด);
+
+        if (ประเภทรายงาน == "รายชั่วโมง")
         {
-            CurrentOrder.Status = OrderStatus.OnHold;
-            CurrentOrder.Id = _orders.Count + 1; // Assign ID
-            _orders.Add(CurrentOrder); // Save to held orders (or a separate list)
-            Console.WriteLine($"Order held with ID: {CurrentOrder.Id}");
-            CurrentOrder = new Order { Items = new List<CartItem>() }; // Start new order
+            ยอดขายตามช่วงเวลา = บิลที่กรองแล้ว
+                .GroupBy(บิล => บิล.วันที่เวลาขาย.Hour.ToString())
+                .ToDictionary(g => $"ชั่วโมงที่ {g.Key}", g => g.Sum(b => b.ยอดสุทธิที่ต้องชำระ));
         }
-        else
+        else if (ประเภทรายงาน == "รายวัน")
         {
-            Console.WriteLine("No items in current order to hold.");
+            ยอดขายตามช่วงเวลา = บิลที่กรองแล้ว
+                .GroupBy(บิล => บิล.วันที่เวลาขาย.ToShortDateString())
+                .ToDictionary(g => g.Key, g => g.Sum(b => b.ยอดสุทธิที่ต้องชำระ));
         }
+        else if (ประเภทรายงาน == "รายเดือน")
+        {
+            ยอดขายตามช่วงเวลา = บิลที่กรองแล้ว
+                .GroupBy(บิล => $"{บิล.วันที่เวลาขาย.Year}-{บิล.วันที่เวลาขาย.Month:00}")
+                .ToDictionary(g => g.Key, g => g.Sum(b => b.ยอดสุทธิที่ต้องชำระ));
+        }
+        else if (ประเภทรายงาน == "รายปี")
+        {
+            ยอดขายตามช่วงเวลา = บิลที่กรองแล้ว
+                .GroupBy(บิล => บิล.วันที่เวลาขาย.Year.ToString())
+                .ToDictionary(g => g.Key, g => g.Sum(b => b.ยอดสุทธิที่ต้องชำระ));
+        }
+        return ยอดขายตามช่วงเวลา;
     }
 
-    public void RetrieveHeldOrder(int orderId)
+    // ฟังก์ชันเพิ่มเติมสำหรับ `ระบบPOS` เพื่อการจัดการที่ครบวงจรขึ้น
+    public void เพิ่มสินค้า(สินค้า สินค้าใหม่)
     {
-        var heldOrder = _orders.FirstOrDefault(o => o.Id == orderId && o.Status == OrderStatus.OnHold);
-        if (heldOrder != null)
-        {
-            CurrentOrder = heldOrder;
-            CurrentOrder.Status = OrderStatus.Pending; // Change status back
-            Console.WriteLine($"Held order {orderId} retrieved.");
-            CalculateOrderTotals();
-        }
-        else
-        {
-            Console.WriteLine($"Held order {orderId} not found.");
-        }
+        คลังสินค้า.Add(สินค้าใหม่);
+        Console.WriteLine($"เพิ่มสินค้า {สินค้าใหม่.ชื่อสินค้า} (รหัส: {สินค้าใหม่.รหัสสินค้า}) เข้าสู่ระบบแล้ว");
     }
 
-    // 37. ระบบจัดการคืนเงินหรือแลกเปลี่ยนสินค้า (Exchange)
-    public void ExchangeProduct(int originalOrderId, string productToExchangeCode, decimal returnQuantity, string newProductCode, decimal newQuantity)
+    public สินค้า รับข้อมูลสินค้า(string รหัสสินค้า)
     {
-        // This is complex, typically involves a refund of original item and a new sale for new item
-        // For simplicity, let's just refund the old item and add the new one.
-        RefundProductFromOrder(originalOrderId, productToExchangeCode, returnQuantity);
-        AddItemToOrder(newProductCode, newQuantity);
-        Console.WriteLine($"Attempted exchange: Refunded {returnQuantity} of {productToExchangeCode} and added {newQuantity} of {newProductCode}.");
-    }
-
-    public void RefundProductFromOrder(int orderId, string productIdentifier, decimal quantity)
-    {
-        var order = _orders.FirstOrDefault(o => o.Id == orderId && o.Status == OrderStatus.Completed);
-        if (order == null)
-        {
-            Console.WriteLine($"Order {orderId} not found or not completed for partial refund.");
-            return;
-        }
-
-        var itemToRefund = order.Items.FirstOrDefault(item =>
-            item.Product.Code == productIdentifier ||
-            item.Product.Name.Contains(productIdentifier, StringComparison.OrdinalIgnoreCase));
-
-        if (itemToRefund == null || itemToRefund.Quantity < quantity)
-        {
-            Console.WriteLine($"Product {productIdentifier} not found in order {orderId} or quantity exceeds purchased amount.");
-            return;
-        }
-
-        // Reduce quantity in order item
-        itemToRefund.Quantity -= quantity;
-
-        // Restore stock
-        var productInStock = _products.FirstOrDefault(p => p.Id == itemToRefund.Product.Id);
-        if (productInStock != null)
-        {
-            productInStock.StockQuantity += (int)quantity;
-        }
-
-        // Recalculate order totals for this specific order and process partial refund
-        // This logic is simplified and would need proper financial transaction handling.
-        Console.WriteLine($"Refunded {quantity} of {itemToRefund.Product.Name} from order {orderId}. Stock restored.");
-        // Re-calculate order total for `order` (not CurrentOrder) and process refund amount.
-    }
-
-
-    // 38. ระบบคำนวณค่าขนส่ง (ถ้ามี)
-    public decimal CalculateShippingCost(string deliveryAddress, decimal orderWeight, decimal orderValue)
-    {
-        // Example: Flat rate + per kg
-        decimal baseFee = 20.00m;
-        decimal perKgRate = 5.00m;
-        return baseFee + (orderWeight * perKgRate);
-    }
-
-    // 39. รองรับการสั่งซื้อสินค้าล่วงหน้า (Pre-order)
-    public Order CreatePreOrder(Customer customer, List<CartItem> items)
-    {
-        var preOrder = new Order
-        {
-            Id = _orders.Count + 1,
-            OrderDate = DateTime.Now,
-            Customer = customer,
-            Items = items,
-            Status = OrderStatus.PreOrder,
-            CreatedDate = DateTime.Now
-        };
-        // Do not deduct stock for pre-order, just record it
-        _orders.Add(preOrder);
-        Console.WriteLine($"Pre-order created for {customer.Name} with ID: {preOrder.Id}");
-        return preOrder;
-    }
-
-    // 40. รองรับการทำงานแบบออฟไลน์ และซิงค์ข้อมูลเมื่อออนไลน์
-    // (Requires a local database like SQLite and a synchronization service/API)
-    // public void SaveOfflineData() { /* ... */ }
-    // public void SyncOnlineData() { /* ... */ }
-
-    // 41. ระบบจัดการราคาสินค้าตามช่วงเวลา (Time-based pricing)
-    public decimal GetPriceAtTime(Product product, DateTime queryTime)
-    {
-        // Example: Product P001 is 40.00 from 10:00 to 12:00
-        if (product.Code == "P001" && queryTime.Hour >= 10 && queryTime.Hour < 12)
-        {
-            return 40.00m;
-        }
-        return product.UnitPrice;
-    }
-
-    // 42. ระบบเก็บประวัติแก้ไขบิล (Audit Trail)
-    public void RecordAudit(int orderId, string action, string changedBy, DateTime changeTime)
-    {
-        // Log to a separate AuditLog table/file
-        Console.WriteLine($"Audit Log: Order {orderId}, Action: {action}, By: {changedBy}, At: {changeTime}");
-    }
-
-    // 43. รองรับการขายสินค้าหลายภาษา
-    // (Requires localization resources, e.g., ResX files or database for product names/descriptions)
-    // public string GetProductNameInLanguage(Product product, string languageCode) { /* ... */ return product.Name; }
-
-    // 44. ระบบบันทึกหมายเหตุเพิ่มเติมในบิลขาย
-    public void AddNoteToOrder(int orderId, string note)
-    {
-        var order = _orders.FirstOrDefault(o => o.Id == orderId);
-        if (order != null)
-        {
-            order.Notes = note;
-            order.LastModifiedDate = DateTime.Now;
-            Console.WriteLine($"Note added to order {orderId}: {note}");
-        }
-    }
-
-    // 45. ระบบพิมพ์ใบสั่งซื้อสินค้าให้ฝ่ายคลังสินค้า (Purchase Order)
-    public void GeneratePurchaseOrder(List<Product> productsToOrder, int supplierId, DateTime requiredDate)
-    {
-        // Create a PurchaseOrder object and save it
-        Console.WriteLine($"Generated Purchase Order for {productsToOrder.Count} items from supplier {supplierId}, required by {requiredDate.ToShortDateString()}");
-        // Logic to print/send PO
-    }
-
-    // 46. ระบบเชื่อมต่อกับเครื่องชำระเงินภายนอก (POS Terminal)
-    // (Requires integration with specific payment terminal SDKs/APIs, e.g., EMV, PCI DSS compliance)
-    // public bool ProcessPaymentWithTerminal(decimal amount) { /* ... */ return true; }
-
-    // 47. ระบบบันทึกและรายงานการขายตามพนักงาน
-    // (ดูใน SummarizeShiftSales และ Order.SalesPerson)
-
-    // 48. รองรับการปรับเปลี่ยนราคาสินค้าแบบทันที (Price Override)
-    public void OverrideItemPriceInCurrentOrder(string productIdentifier, decimal newPrice)
-    {
-        var item = CurrentOrder.Items.FirstOrDefault(i =>
-            i.Product.Code == productIdentifier ||
-            i.Product.Name.Contains(productIdentifier, StringComparison.OrdinalIgnoreCase));
-
-        if (item != null)
-        {
-            // Note: This changes the price for this specific order item, not the Product master price
-            item.Product.UnitPrice = newPrice; // This is a simplistic override; usually you copy the product
-            CalculateOrderTotals();
-            Console.WriteLine($"Price for {item.Product.Name} overridden to {newPrice:C} for this order.");
-            RecordAudit(CurrentOrder.Id, $"Price Override for {item.Product.Name}", _currentCashier?.Username ?? "System", DateTime.Now);
-        }
-        else
-        {
-            Console.WriteLine($"Product '{productIdentifier}' not found in current order.");
-        }
-    }
-
-    // 49. ระบบจัดการภาษีในกรณีสินค้าหลายประเภท (VAT แยกตามสินค้า)
-    // (Already handled by Product.VatRate and calculation in CalculateOrderTotals)
-
-    // 50. ระบบจัดการและคืนเงินเครดิต (Credit Memo)
-    public void IssueCreditMemo(Customer customer, decimal amount, string reason)
-    {
-        // Create a CreditMemo object and save it.
-        // This amount can be used for future purchases by the customer.
-        Console.WriteLine($"Issued Credit Memo for {customer.Name}, Amount: {amount:C}, Reason: {reason}");
-        // Update customer's credit balance or issue a credit code.
+        return คลังสินค้า.FirstOrDefault(s => s.รหัสสินค้า == รหัสสินค้า);
     }
 }
-
-// --- Main Program (for demonstration) ---
-public class Program
-{
-    public static void Main(string[] args)
-    {
-        PosSystem pos = new PosSystem();
-        User currentUser = null;
-
-        Console.WriteLine("--- POS System Simulation ---");
-
-        // Simulate Login
-        currentUser = pos.Login("cashier1", "cashier_pass");
-        if (currentUser == null) return;
-
-        pos.StartShift(currentUser);
-
-        // 1. & 18. Add Items
-        pos.AddItemToOrder("P001", 2); // Milk
-        pos.AddItemToOrder("Bread", 1);
-        pos.AddItemToOrder("P003", 5); // Apple
-        pos.AddItemToOrder("P001", 1); // Add more Milk, should combine
-
-        // Simulate adding a customer to the order
-        pos.CurrentOrder.Customer = pos._customers.First(c => c.Id == 1); // Alice
-
-        // 48. Price Override
-        pos.OverrideItemPriceInCurrentOrder("Bread", 30.00m);
-
-        // 36. Hold order
-        pos.HoldCurrentOrder();
-
-        // Start a new order
-        pos.AddItemToOrder("P004", 1); // Medicine A (0% VAT example)
-        pos.AddItemToOrder("P002", 3); // Bread
-
-        // 22. Check member price
-        var productForMember = pos._products.First(p => p.Id == 1);
-        Console.WriteLine($"Member price for Milk: {pos.GetMemberPrice(productForMember, pos.CurrentOrder.Customer):C}");
-
-        // 21. Loyalty points
-        pos.CurrentOrder.Customer = pos._customers.First(c => c.Id == 2); // Bob
-
-        // 11. Process Payment
-        pos.ProcessPayment(200.00m, "Cash");
-
-        // 36. Retrieve held order
-        pos.RetrieveHeldOrder(1);
-        pos.ProcessPayment(200.00m, "Credit Card");
-
-        // 16. Customer history
-        Console.WriteLine("\n--- Alice's Order History ---");
-        var aliceOrders = pos.GetCustomerOrderHistory(1);
-        foreach (var order in aliceOrders)
-        {
-            Console.WriteLine($"Order ID: {order.Id}, Total: {order.NetAmount:C}, Status: {order.Status}");
-        }
-
-        // 14. Refund
-        pos.RefundOrder(1);
-
-        // 15. Void (example if payment wasn't processed yet or just created)
-        // Simulate creating a new order to void
-        pos.AddItemToOrder("P003", 2);
-        pos.CurrentOrder.Id = pos._orders.Count + 1; // Assign an ID to make it voidable
-        pos._orders.Add(pos.CurrentOrder); // Add to mock DB to simulate saving it
-        pos.VoidOrder(pos.CurrentOrder.Id);
-
-        // 28. Best selling products
-        Console.WriteLine("\n--- Best Selling Products ---");
-        var bestSellers = pos.GetBestSellingProducts(2);
-        foreach (var p in bestSellers)
-        {
-            Console.WriteLine($"- {p.Name}");
-        }
-
-        // 29. Low stock alert
-        Console.WriteLine("\n--- Low Stock Products (Threshold 10) ---");
-        var lowStock = pos.GetLowStockProducts(10);
-        foreach (var p in lowStock)
-        {
-            Console.WriteLine($"- {p.Name} (Qty: {p.StockQuantity})");
-        }
-
-        // 30. Expiring products
-        Console.WriteLine("\n--- Expiring Products (Next 30 days) ---");
-        var expiring = pos.GetExpiringProducts(30);
-        foreach (var p in expiring)
-        {
-            Console.WriteLine($"- {p.Name} (Expires: {p.ExpiryDate?.ToShortDateString()})");
-        }
-
-        // 31. Register new user
-        pos.RegisterUser("manager1", "manager_pass", UserRole.Manager);
-
-        // 35. Add/Update customer
-        pos.AddOrUpdateCustomer(new Customer { Id = 3, Name = "Charlie", Phone = "0987654321", Address = "Some Street" });
-
-        // 39. Pre-order
-        var preOrderItems = new List<CartItem>
-        {
-            new CartItem { Product = pos._products.First(p => p.Id == 1), Quantity = 10 }
-        };
-        pos.CreatePreOrder(pos._customers.First(c => c.Id == 3), preOrderItems);
-
-        // 44. Add note
-        pos.AddNoteToOrder(1, "Customer requested no plastic bag.");
-
-        // 50. Credit Memo
-        pos.IssueCreditMemo(pos._customers.First(c => c.Id == 1), 50.00m, "Customer goodwill");
-
-        pos.EndShift();
-    }
-}
-
-Sure, here are another 50 logic points for a POS system, building on the previous list, with brief C# code concepts.
+```แน่นอนครับ! นี่คืออีก 50 ข้อของ Logic และฟีเจอร์เพิ่มเติมสำหรับระบบ POS พร้อมโครงสร้างโค้ด C# .NET แบบย่อครับ
 
 ---
 
-### Additional POS Logic and Features (51-100)
+### โครงสร้างคลาสที่ปรับปรุง (เพิ่มเติม/แก้ไขจากเดิม)
 
 ```csharp
-// Continuing from the previous PosSystem class
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
-// 51. ระบบจัดการชุดสินค้า (Bundle Products) - เช่น ซื้อกาแฟ+ขนมปังได้ราคาพิเศษ
-public class ProductBundle
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public List<int> ProductIdsInBundle { get; set; } // IDs of products in the bundle
-    public decimal BundlePrice { get; set; }
+// การประกาศคลาสพื้นฐานที่มีอยู่แล้ว (เน้นส่วนที่ปรับปรุง/เพิ่มเข้ามา)
+public class สินค้า {
+    public string รหัสสินค้า { get; set; }
+    public string ชื่อสินค้า { get; set; }
+    public decimal ราคาต่อหน่วย { get; set; }
+    public int จำนวนคงเหลือ { get; set; }
+    public string หน่วยนับ { get; set; }
+    public DateTime วันหมดอายุ { get; set; }
+    public decimal ราคาพิเศษสมาชิก { get; set; }
+    public string หมวดหมู่ { get; set; }
+    public decimal อัตราภาษี { get; set; }
+    public bool เป็นสินค้าบริการ { get; set; }
+    public decimal ต้นทุนสินค้า { get; set; }
+    public string สถานะสินค้า { get; set; }
+    public int จุดสั่งซื้อ { get; set; }
+    public string รูปภาพสินค้า { get; set; }
+    public List<string> แท็กสินค้า { get; set; }
+    public List<ข้อมูลตัวเลือกสินค้า> ตัวเลือกสินค้า { get; set; }
+    public bool ต้องคิดภาษี { get; set; } // ข้อ 101
+    public string บาร์โค้ด { get; set; } // ข้อ 102
+    public int จำนวนขั้นต่ำในการขาย { get; set; } // ข้อ 103
+    public string คำอธิบายสินค้า { get; set; } // ข้อ 107
+    public string รหัสหมวดหมู่หลัก { get; set; } // ข้อ 108
+    public string รหัสหมวดหมู่ย่อย { get; set; } // ข้อ 108
+    public List<ราคาตามช่วงเวลา> ราคาพิเศษตามช่วงเวลา { get; set; } // ข้อ 141
 }
 
-public void AddBundleToOrder(int bundleId, decimal quantity = 1)
+public class ข้อมูลตัวเลือกสินค้า {
+    public string ชื่อตัวเลือก { get; set; }
+    public List<string> ค่าตัวเลือก { get; set; }
+    public Dictionary<string, decimal> ราคาเพิ่มลดตามตัวเลือก { get; set; }
+    public Dictionary<string, int> สต็อกตามตัวเลือก { get; set; }
+}
+
+public class ราคาตามช่วงเวลา // ข้อ 141
 {
-    var bundle = _productBundles.FirstOrDefault(b => b.Id == bundleId);
-    if (bundle == null)
+    public decimal ราคา { get; set; }
+    public DateTime วันที่เริ่มต้น { get; set; }
+    public DateTime วันที่สิ้นสุด { get; set; }
+    public string วันที่ใช้ได้ { get; set; } // เช่น "จันทร์-ศุกร์", "ทุกวัน"
+    public TimeSpan เวลาเริ่มต้น { get; set; }
+    public TimeSpan เวลาสิ้นสุด { get; set; }
+}
+
+
+public class รายการสินค้าในตะกร้า {
+    public สินค้า สินค้า { get; set; }
+    public int จำนวน { get; set; }
+    public decimal ราคารวมรายการ { get; set; }
+    public decimal ส่วนลดรายการ { get; set; }
+    public string รหัสส่วนลดที่ใช้ { get; set; }
+    public List<string> ตัวเลือกที่เลือก { get; set; }
+    public decimal ราคาที่บันทึกขณะเพิ่ม { get; set; } // ข้อ 148
+}
+
+public class ใบเสร็จ {
+    public string เลขที่บิล { get; set; }
+    public DateTime วันที่เวลาขาย { get; set; }
+    public List<รายการสินค้าในตะกร้า> รายการสินค้า { get; set; }
+    public decimal ยอดรวมก่อนหักส่วนลด { get; set; }
+    public decimal ส่วนลดรวม { get; set; }
+    public decimal ยอดรวมหลังหักส่วนลด { get; set; }
+    public decimal ภาษีมูลค่าเพิ่ม { get; set; }
+    public decimal ยอดสุทธิที่ต้องชำระ { get; set; }
+    public string ช่องทางการชำระเงิน { get; set; }
+    public decimal ยอดเงินที่รับมา { get; set; }
+    public decimal เงินทอน { get; set; }
+    public ลูกค้า ข้อมูลลูกค้า { get; set; }
+    public พนักงาน ข้อมูลพนักงานขาย { get; set; }
+    public string สถานะบิล { get; set; }
+    public string หมายเหตุ { get; set; }
+    public decimal ค่าจัดส่ง { get; set; }
+    public string รหัสกะที่ขาย { get; set; }
+    public string หมายเลขเครื่อง POS { get; set; }
+    public string หมายเลขลูกค้าอ้างอิง { get; set; }
+    public decimal คะแนนสะสมที่ใช้ { get; set; }
+    public string วิธีการจัดส่ง { get; set; }
+    public DateTime? กำหนดส่งมอบ { get; set; }
+    public string หมายเหตุการยกเลิก { get; set; }
+    public Dictionary<string, decimal> การชำระเงินแยกส่วน { get; set; }
+    public string เลขที่อ้างอิงการทำรายการ { get; set; }
+    public string รหัสโปรโมชั่นที่ใช้ { get; set; }
+    public string รหัสอ้างอิงการรับชำระ { get; set; } // ข้อ 111
+    public string สถานะการจัดส่ง { get; set; } // ข้อ 115
+    public string รหัสไปรษณีย์จัดส่ง { get; set; } // ข้อ 136
+    public string ที่อยู่จัดส่งเต็ม { get; set; } // ข้อ 136
+    public string รหัสผู้ดูแลที่อนุมัติ { get; set; } // ข้อ 144
+    public decimal ค่าธรรมเนียมบัตรเครดิต { get; set; } // ข้อ 147
+}
+
+public class ลูกค้า {
+    public string รหัสลูกค้า { get; set; }
+    public string ชื่อลูกค้า { get; set; }
+    public int แต้มสะสม { get; set; }
+    public List<ใบเสร็จ> ประวัติการซื้อ { get; set; }
+    public decimal วงเงินเครดิตคงเหลือ { get; set; }
+    public string เบอร์โทรศัพท์ { get; set; }
+    public string อีเมล { get; set; }
+    public string ที่อยู่ { get; set; }
+    public DateTime วันเกิด { get; set; }
+    public string ประเภทลูกค้า { get; set; } // ข้อ 104
+    public string รหัสสมาชิกภายนอก { get; set; } // ข้อ 135
+}
+
+public class พนักงาน {
+    public string รหัสพนักงาน { get; set; }
+    public string ชื่อพนักงาน { get; set; }
+    public string รหัสผ่าน { get; set; }
+    public string สิทธิ์การใช้งาน { get; set; }
+    public string แผนก { get; set; }
+    public bool สามารถปรับเปลี่ยนราคาได้ { get; set; } // ข้อ 144
+}
+
+public class โปรโมชั่น {
+    public string รหัสโปรโมชั่น { get; set; }
+    public string ชื่อโปรโมชั่น { get; set; }
+    public string ประเภทโปรโมชั่น { get; set; }
+    public Func<List<รายการสินค้าในตะกร้า>, List<รายการสินค้าในตะกร้า>> คำนวณส่วนลดโปรโมชั่น { get; set; }
+    public DateTime วันที่เริ่มต้น { get; set; }
+    public DateTime วันที่สิ้นสุด { get; set; }
+    public decimal ยอดซื้อขั้นต่ำ { get; set; }
+    public List<string> สินค้าที่ร่วมรายการ { get; set; }
+    public List<string> สินค้าที่ไม่ร่วมรายการ { get; set; }
+    public int จำนวนครั้งที่ใช้ได้ { get; set; } // ข้อ 112
+    public int จำนวนครั้งที่ใช้ไปแล้ว { get; set; } // ข้อ 112
+    public List<string> สาขาที่ร่วมรายการ { get; set; } // ข้อ 125
+}
+
+public class คูปอง {
+    public string รหัสคูปอง { get; set; }
+    public decimal มูลค่าส่วนลด { get; set; }
+    public DateTime วันหมดอายุ { get; set; }
+    public bool ใช้งานแล้ว { get; set; }
+    public int จำนวนครั้งที่ใช้ได้ { get; set; }
+    public int จำนวนครั้งที่ใช้งานไปแล้ว { get; set; }
+    public string ประเภทคูปอง { get; set; }
+    public decimal เงื่อนไขยอดซื้อขั้นต่ำ { get; set; }
+    public bool สามารถใช้ได้หลายครั้ง { get; set; } // ข้อ 130
+}
+
+public class ข้อมูลกะ
+{
+    public string รหัสกะ { get; set; }
+    public DateTime เวลาเปิดกะ { get; set; }
+    public DateTime? เวลาปิดกะ { get; set; }
+    public พนักงาน พนักงานเปิดกะ { get; set; }
+    public พนักงาน พนักงานปิดกะ { get; set; }
+    public decimal ยอดขายเงินสด { get; set; }
+    public decimal ยอดขายบัตรเครดิต { get; set; }
+    public decimal ยอดรวมในกะ { get; set; }
+    public decimal เงินสดเริ่มต้นกะ { get; set; }
+    public decimal เงินสดปิดกะ { get; set; }
+    public decimal เงินเบิกจ่ายในกะ { get; set; }
+    public List<ใบเสร็จ> บิลที่ขายในกะ { get; set; }
+    public decimal ยอดรวมรับชำระ { get; set; } // ข้อ 139
+    public decimal ยอดรวมคืนเงิน { get; set; } // ข้อ 139
+}
+
+public class ข้อมูลผู้จัดหา {
+    public string รหัสผู้จัดหา { get; set; }
+    public string ชื่อผู้จัดหา { get; set; }
+    public string เบอร์โทรศัพท์ { get; set; }
+    public string ที่อยู่ { get; set; }
+}
+
+public class รายการรับสินค้า {
+    public string เลขที่รับสินค้า { get; set; }
+    public DateTime วันที่รับ { get; set; }
+    public ข้อมูลผู้จัดหา ผู้จัดหา { get; set; }
+    public List<สินค้า> รายการสินค้าที่รับ { get; set; } // รายการสินค้าพร้อมจำนวนที่รับ
+    public พนักงาน ผู้รับสินค้า { get; set; }
+    public string หมายเหตุ { get; set; } // ข้อ 118
+}
+
+public class ใบเสนอราคา {
+    public string เลขที่ใบเสนอราคา { get; set; }
+    public DateTime วันที่สร้าง { get; set; }
+    public ลูกค้า ข้อมูลลูกค้า { get; set; }
+    public List<รายการสินค้าในตะกร้า> รายการสินค้า { get; set; }
+    public decimal ยอดรวมสุทธิ { get; set; }
+    public DateTime วันหมดอายุใบเสนอราคา { get; set; }
+    public string สถานะ { get; set; }
+    public string รหัสพนักงานที่สร้าง { get; set; } // ข้อ 113
+}
+
+public class ระบบPOS
+{
+    private List<สินค้า> คลังสินค้า;
+    private List<รายการสินค้าในตะกร้า> ตะกร้าสินค้า;
+    private List<ใบเสร็จ> ประวัติการขาย;
+    private List<ลูกค้า> ฐานข้อมูลลูกค้า;
+    private List<พนักงาน> ฐานข้อมูลพนักงาน;
+    private List<โปรโมชั่น> รายการโปรโมชั่น;
+    private List<คูปอง> รายการคูปอง;
+    private List<ข้อมูลกะ> ประวัติกะขาย;
+    private List<ข้อมูลผู้จัดหา> ฐานข้อมูลผู้จัดหา;
+    private List<รายการรับสินค้า> ประวัติการรับสินค้า;
+    private List<ใบเสนอราคา> รายการใบเสนอราคา;
+    private List<string> หมวดหมู่สินค้าทั้งหมด; // ข้อ 108
+
+    private พนักงาน พนักงานที่เข้าสู่ระบบปัจจุบัน;
+    private string คลังสินค้าปัจจุบัน;
+    private ข้อมูลกะ กะปัจจุบัน;
+
+    public ระบบPOS()
     {
-        Console.WriteLine($"Bundle {bundleId} not found.");
-        return;
+        คลังสินค้า = new List<สินค้า>();
+        ตะกร้าสินค้า = new List<รายการสินค้าในตะกร้า>();
+        ประวัติการขาย = new List<ใบเสร็จ>();
+        ฐานข้อมูลลูกค้า = new List<ลูกค้า>();
+        ฐานข้อมูลพนักงาน = new List<พนักงาน>();
+        รายการโปรโมชั่น = new List<โปรโมชั่น>();
+        รายการคูปอง = new List<คูปอง>();
+        ประวัติกะขาย = new List<ข้อมูลกะ>();
+        ฐานข้อมูลผู้จัดหา = new List<ข้อมูลผู้จัดหา>();
+        ประวัติการรับสินค้า = new List<รายการรับสินค้า>();
+        รายการใบเสนอราคา = new List<ใบเสนอราคา>();
+        หมวดหมู่สินค้าทั้งหมด = new List<string>();
+
+        คลังสินค้าปัจจุบัน = "คลังหลัก";
+
+        // ตัวอย่างข้อมูลเริ่มต้น
+        ฐานข้อมูลพนักงาน.Add(new พนักงาน { รหัสพนักงาน = "EMP001", ชื่อพนักงาน = "แอดมิน", รหัสผ่าน = "admin123", สิทธิ์การใช้งาน = "Admin", สามารถปรับเปลี่ยนราคาได้ = true });
+        ฐานข้อมูลพนักงาน.Add(new พนักงาน { รหัสพนักงาน = "EMP002", ชื่อพนักงาน = "แคชเชียร์", รหัสผ่าน = "cashier123", สิทธิ์การใช้งาน = "Cashier", สามารถปรับเปลี่ยนราคาได้ = false });
+        หมวดหมู่สินค้าทั้งหมด.Add("อาหาร");
+        หมวดหมู่สินค้าทั้งหมด.Add("เครื่องดื่ม");
     }
 
-    // Check stock for all products in the bundle
-    foreach (var productId in bundle.ProductIdsInBundle)
+    // --- 101. รองรับการคิดภาษีสำหรับสินค้าแต่ละรายการ (ยกเว้นสินค้าที่ไม่คิดภาษี)
+    // เพิ่ม `bool ต้องคิดภาษี` ในคลาส `สินค้า`
+    public decimal คำนวณภาษีมูลค่าเพิ่มจากตะกร้า(decimal อัตราภาษีรวม = 0.07m)
     {
-        var product = _products.FirstOrDefault(p => p.Id == productId);
-        if (product == null || product.StockQuantity < quantity)
+        return ตะกร้าสินค้า
+            .Where(รายการ => รายการ.สินค้า.ต้องคิดภาษี)
+            .Sum(รายการ => (รายการ.ราคารวมรายการ - รายการ.ส่วนลดรายการ) * อัตราภาษีรวม);
+    }
+
+    // --- 102. รองรับบาร์โค้ดสินค้าหลายรูปแบบ (UPC, EAN, QR Code)
+    // เพิ่ม `string บาร์โค้ด` ในคลาส `สินค้า` (และสามารถมี List<string> เพื่อรองรับหลายบาร์โค้ด)
+    public สินค้า ค้นหาสินค้าด้วยบาร์โค้ด(string บาร์โค้ด)
+    {
+        return คลังสินค้า.FirstOrDefault(s => s.บาร์โค้ด == บาร์โค้ด); // หรือใช้ Regex สำหรับ QR Code
+    }
+
+    // --- 103. กำหนดจำนวนขั้นต่ำในการขายสินค้า
+    // เพิ่ม `int จำนวนขั้นต่ำในการขาย` ในคลาส `สินค้า`
+    public void ตรวจสอบจำนวนขั้นต่ำในการขาย(รายการสินค้าในตะกร้า รายการ)
+    {
+        if (รายการ.สินค้า.จำนวนขั้นต่ำในการขาย > 0 && รายการ.จำนวน < รายการ.สินค้า.จำนวนขั้นต่ำในการขาย)
         {
-            Console.WriteLine($"Not enough stock for product in bundle: {product?.Name ?? "N/A"}");
+            Console.WriteLine($"ข้อผิดพลาด: สินค้า {รายการ.สินค้า.ชื่อสินค้า} ต้องสั่งอย่างน้อย {รายการ.สินค้า.จำนวนขั้นต่ำในการขาย} ชิ้น");
+        }
+    }
+
+    // --- 104. ระบบจัดการประเภทลูกค้า (เช่น ลูกค้าทั่วไป, ลูกค้าประจำ, ลูกค้า VIP)
+    // เพิ่ม `string ประเภทลูกค้า` ในคลาส `ลูกค้า`
+    public void กำหนดประเภทลูกค้า(ลูกค้า ลูกค้า, string ประเภท)
+    {
+        ลูกค้า.ประเภทลูกค้า = ประเภท;
+        Console.WriteLine($"กำหนดประเภทลูกค้า {ลูกค้า.ชื่อลูกค้า} เป็น {ประเภท} แล้ว");
+    }
+
+    // --- 105. ระบบรายงานยอดขายตามประเภทลูกค้า
+    public Dictionary<string, decimal> รายงานยอดขายตามประเภทลูกค้า(DateTime วันที่เริ่มต้น, DateTime วันที่สิ้นสุด)
+    {
+        return ประวัติการขาย
+            .Where(บิล => บิล.วันที่เวลาขาย >= วันที่เริ่มต้น && บิล.วันที่เวลาขาย <= วันที่สิ้นสุด && บิล.ข้อมูลลูกค้า != null)
+            .GroupBy(บิล => บิล.ข้อมูลลูกค้า.ประเภทลูกค้า ?? "ทั่วไป") // ใช้ "ทั่วไป" หากไม่มีประเภท
+            .ToDictionary(g => g.Key, g => g.Sum(b => b.ยอดสุทธิที่ต้องชำระ));
+    }
+
+    // --- 106. ระบบแจ้งเตือนเมื่อสินค้าใกล้หมดอายุ ณ จุดขาย
+    public List<สินค้า> แจ้งเตือนสินค้าใกล้หมดอายุในตะกร้า()
+    {
+        return ตะกร้าสินค้า
+            .Where(item => item.สินค้า.วันหมดอายุ != default(DateTime) && item.สินค้า.วันหมดอายุ <= DateTime.Today.AddDays(7)) // ภายใน 7 วัน
+            .Select(item => item.สินค้า)
+            .ToList();
+    }
+
+    // --- 107. บันทึกคำอธิบายสินค้า
+    // เพิ่ม `string คำอธิบายสินค้า` ในคลาส `สินค้า`
+
+    // --- 108. จัดการหมวดหมู่สินค้าแบบหลายระดับ (เช่น อาหาร > ขนม > คุกกี้)
+    // เพิ่ม `รหัสหมวดหมู่หลัก`, `รหัสหมวดหมู่ย่อย` ในคลาส `สินค้า` และ `List<string> หมวดหมู่สินค้าทั้งหมด` ในระบบPOS
+
+    // --- 109. ระบบแสดงราคาสินค้าต่อหน่วย (เช่น บาท/กิโลกรัม)
+    // แสดงผลได้จากการใช้ `สินค้า.ราคาต่อหน่วย` และ `สินค้า.หน่วยนับ` ในหน้าจอ
+
+    // --- 110. ระบบจำกัดสิทธิ์การเข้าถึงข้อมูลลูกค้า
+    // ทำได้โดยการตรวจสอบ `พนักงานที่เข้าสู่ระบบปัจจุบัน.สิทธิ์การใช้งาน` ก่อนอนุญาตให้เข้าถึงข้อมูลลูกค้า
+
+    // --- 111. บันทึกรหัสอ้างอิงการรับชำระ (เช่น เลขที่ Transaction ID ของบัตรเครดิต)
+    // เพิ่ม `string รหัสอ้างอิงการรับชำระ` ในคลาส `ใบเสร็จ`
+
+    // --- 112. กำหนดจำนวนครั้งที่สามารถใช้โปรโมชั่นได้
+    // เพิ่ม `int จำนวนครั้งที่ใช้ได้`, `int จำนวนครั้งที่ใช้ไปแล้ว` ในคลาส `โปรโมชั่น`
+
+    // --- 113. ระบบบันทึกพนักงานผู้สร้าง/แก้ไขใบเสนอราคา
+    // เพิ่ม `string รหัสพนักงานที่สร้าง` ในคลาส `ใบเสนอราคา`
+
+    // --- 114. ระบบรายงานการเคลื่อนไหวของสต็อกสินค้า
+    public List<string> รายงานการเคลื่อนไหวสต็อก(string รหัสสินค้า, DateTime วันที่เริ่มต้น, DateTime วันที่สิ้นสุด)
+    {
+        var รายงาน = new List<string>();
+        // ตัวอย่าง: ดึงข้อมูลการรับสินค้า
+        foreach (var รับสินค้าในประวัติ in ประวัติการรับสินค้า.Where(r => r.วันที่รับ >= วันที่เริ่มต้น && r.วันที่รับ <= วันที่สิ้นสุด))
+        {
+            var สินค้าที่เกี่ยวข้อง = รับสินค้าในประวัติ.รายการสินค้าที่รับ.FirstOrDefault(s => s.รหัสสินค้า == รหัสสินค้า);
+            if (สินค้าที่เกี่ยวข้อง != null)
+            {
+                รายงาน.Add($"[{รับสินค้าในประวัติ.วันที่รับ}] รับสินค้า {สินค้าที่เกี่ยวข้อง.ชื่อสินค้า} จำนวน {สินค้าที่เกี่ยวข้อง.จำนวนคงเหลือ} จาก {รับสินค้าในประวัติ.ผู้จัดหา.ชื่อผู้จัดหา}");
+            }
+        }
+        // ตัวอย่าง: ดึงข้อมูลการขาย
+        foreach (var บิลในประวัติ in ประวัติการขาย.Where(b => b.วันที่เวลาขาย >= วันที่เริ่มต้น && b.วันที่เวลาขาย <= วันที่สิ้นสุด))
+        {
+            var รายการที่เกี่ยวข้อง = บิลในประวัติ.รายการสินค้า.FirstOrDefault(item => item.สินค้า.รหัสสินค้า == รหัสสินค้า);
+            if (รายการที่เกี่ยวข้อง != null)
+            {
+                รายงาน.Add($"[{บิลในประวัติ.วันที่เวลาขาย}] ขายสินค้า {รายการที่เกี่ยวข้อง.สินค้า.ชื่อสินค้า} จำนวน {รายการที่เกี่ยวข้อง.จำนวน} ในบิล {บิลในประวัติ.เลขที่บิล}");
+            }
+        }
+        return รายงาน;
+    }
+
+    // --- 115. ระบบจัดการสถานะการจัดส่งสินค้า
+    // เพิ่ม `string สถานะการจัดส่ง` ในคลาส `ใบเสร็จ`
+    public void อัพเดตสถานะการจัดส่ง(string เลขที่บิล, string สถานะใหม่)
+    {
+        var บิล = ประวัติการขาย.FirstOrDefault(b => b.เลขที่บิล == เลขที่บิล);
+        if (บิล != null)
+        {
+            บิล.สถานะการจัดส่ง = สถานะใหม่;
+            Console.WriteLine($"อัพเดตสถานะจัดส่งบิล {เลขที่บิล} เป็น '{สถานะใหม่}' แล้ว");
+        }
+    }
+
+    // --- 116. ระบบแจ้งเตือนเมื่อมีคำสั่งซื้อ Pre-order ถึงกำหนดจัดส่ง
+    public List<ใบเสร็จ> ตรวจสอบคำสั่งซื้อถึงกำหนดส่ง(DateTime วันที่ปัจจุบัน)
+    {
+        return ประวัติการขาย
+            .Where(บิล => บิล.กำหนดส่งมอบ.HasValue && บิล.กำหนดส่งมอบ.Value.Date == วันที่ปัจจุบัน.Date && บิล.สถานะการจัดส่ง == "รอจัดส่ง")
+            .ToList();
+    }
+
+    // --- 117. ระบบจัดการค่าธรรมเนียมการชำระเงิน (เช่น ค่าธรรมเนียมบัตรเครดิต)
+    // คำนวณค่าธรรมเนียมได้ใน `ชำระเงิน` และเพิ่ม field ใน `ใบเสร็จ` หากต้องการบันทึก
+
+    // --- 118. บันทึกหมายเหตุในรายการรับสินค้า
+    // เพิ่ม `string หมายเหตุ` ในคลาส `รายการรับสินค้า`
+
+    // --- 119. ระบบรายงานสินค้าที่กำลังจะหมดสต็อก (Near Out of Stock)
+    public List<สินค้า> รายงานสินค้าใกล้หมดสต็อก(int จำนวนที่เหลือ)
+    {
+        return คลังสินค้า.Where(s => s.จำนวนคงเหลือ > 0 && s.จำนวนคงเหลือ <= จำนวนที่เหลือ).ToList();
+    }
+
+    // --- 120. ระบบจำกัดจำนวนสินค้าต่อรายการในบิล
+    public void จำกัดจำนวนสินค้าสูงสุดในตะกร้า(string รหัสสินค้า, int จำนวนสูงสุด)
+    {
+        var รายการ = ตะกร้าสินค้า.FirstOrDefault(x => x.สินค้า.รหัสสินค้า == รหัสสินค้า);
+        if (รายการ != null && รายการ.จำนวน > จำนวนสูงสุด)
+        {
+            รายการ.จำนวน = จำนวนสูงสุด;
+            Console.WriteLine($"ปรับลดจำนวนสินค้า {รายการ.สินค้า.ชื่อสินค้า} ไม่เกิน {จำนวนสูงสุด} ชิ้น");
+        }
+    }
+
+    // --- 121. ระบบจัดการการตั้งค่าเครื่องพิมพ์ (ขนาดกระดาษ, โลโก้)
+    // เป็นการตั้งค่าภายนอกระบบโค้ดหลัก อาจจะเป็นไฟล์ config หรือ UI setting
+
+    // --- 122. ระบบบันทึกการเปิด-ปิดลิ้นชักเก็บเงิน (Cash Drawer Open/Close)
+    public void บันทึกลิ้นชัก(พนักงาน พนักงาน, string การกระทำ, string เหตุผล = "")
+    {
+        Console.WriteLine($"ลิ้นชักเงินถูก {การกระทำ} โดย {พนักงาน.ชื่อพนักงาน} ({เหตุผล}) ที่ {DateTime.Now}");
+        // บันทึกข้อมูลลงฐานข้อมูล audit trail
+    }
+
+    // --- 123. ระบบยืนยันการรับชำระด้วยรหัสผ่าน/PIN ของพนักงาน
+    public bool ยืนยันการรับชำระ(พนักงาน พนักงาน, string รหัสผ่าน)
+    {
+        return พนักงาน.รหัสผ่าน == รหัสผ่าน;
+    }
+
+    // --- 124. ระบบออกใบกำกับภาษีเต็มรูปแบบ
+    public void พิมพ์ใบกำกับภาษี(ใบเสร็จ บิล, ลูกค้า ข้อมูลผู้เสียภาษี)
+    {
+        Console.WriteLine("\n--- ใบกำกับภาษีเต็มรูปแบบ ---");
+        พิมพ์ใบเสร็จ(บิล); // ใช้ข้อมูลจากใบเสร็จ
+        Console.WriteLine($"ชื่อผู้เสียภาษี: {ข้อมูลผู้เสียภาษี.ชื่อลูกค้า}");
+        Console.WriteLine($"ที่อยู่: {ข้อมูลผู้เสียภาษี.ที่อยู่}");
+        Console.WriteLine($"เลขประจำตัวผู้เสียภาษี: ..."); // เพิ่มข้อมูล
+        Console.WriteLine("---------------------------\n");
+    }
+
+    // --- 125. ระบบจัดการโปรโมชั่นแยกตามสาขา
+    // เพิ่ม `List<string> สาขาที่ร่วมรายการ` ในคลาส `โปรโมชั่น`
+
+    // --- 126. ระบบแสดงราคาสินค้าก่อน-หลังหักส่วนลดในตะกร้าสินค้า
+    public void แสดงรายละเอียดตะกร้า()
+    {
+        Console.WriteLine("\n--- ตะกร้าสินค้า ---");
+        foreach (var รายการ in ตะกร้าสินค้า)
+        {
+            decimal ราคาก่อนส่วนลด = รายการ.สินค้า.ราคาต่อหน่วย * รายการ.จำนวน;
+            Console.WriteLine($"{รายการ.สินค้า.ชื่อสินค้า} x {รายการ.จำนวน} = {ราคาก่อนส่วนลด:N2} (ส่วนลด {รายการ.ส่วนลดรายการ:N2}) = {รายการ.ราคารวมรายการ - รายการ.ส่วนลดรายการ:N2}");
+        }
+        Console.WriteLine("---------------------\n");
+    }
+
+    // --- 127. ระบบเก็บข้อมูลวัน/เวลาที่สินค้าถูกเพิ่มเข้าตะกร้า
+    // เพิ่ม `DateTime เวลาที่เพิ่ม` ใน `รายการสินค้าในตะกร้า`
+
+    // --- 128. ระบบตั้งค่าเริ่มต้นสำหรับภาษีและสกุลเงิน
+    // เป็นค่า Config หรือใน Constructor ของ `ระบบPOS`
+
+    // --- 129. ระบบเชื่อมต่อกับระบบบัญชีภายนอก
+    public void เชื่อมต่อระบบบัญชี(ใบเสร็จ บิล)
+    {
+        Console.WriteLine($"ส่งข้อมูลบิล {บิล.เลขที่บิล} ไปยังระบบบัญชีภายนอก...");
+        // Logic for API integration with accounting software
+    }
+
+    // --- 130. ระบบกำหนดว่าคูปองสามารถใช้ซ้ำได้หรือไม่
+    // เพิ่ม `bool สามารถใช้ได้หลายครั้ง` ในคลาส `คูปอง`
+
+    // --- 131. ระบบรายงานยอดขายแยกตามประเภทสินค้า
+    public Dictionary<string, decimal> รายงานยอดขายตามประเภทสินค้า(DateTime วันที่เริ่มต้น, DateTime วันที่สิ้นสุด)
+    {
+        return ประวัติการขาย
+            .Where(บิล => บิล.วันที่เวลาขาย >= วันที่เริ่มต้น && บิล.วันที่เวลาขาย <= วันที่สิ้นสุด)
+            .SelectMany(บิล => บิล.รายการสินค้า)
+            .GroupBy(รายการ => รายการ.สินค้า.หมวดหมู่)
+            .ToDictionary(g => g.Key, g => g.Sum(item => item.ราคารวมรายการ - item.ส่วนลดรายการ));
+    }
+
+    // --- 132. ระบบแจ้งเตือนเมื่อราคาสินค้าถูกแก้ไข
+    // ทำได้ในฟังก์ชัน `ปรับเปลี่ยนราคาสินค้าในตะกร้า` โดยบันทึกการเปลี่ยนแปลง
+
+    // --- 133. ระบบรองรับการตั้งเวลาเปิด-ปิดร้าน
+    // เป็นการตั้งค่าในระบบ หรือใช้กับ `ข้อมูลกะ` เพื่อตรวจสอบการทำรายการนอกเวลา
+
+    // --- 134. ระบบแสดงประวัติการเปลี่ยนแปลงสต็อกของสินค้าแต่ละตัว
+    // คล้ายกับข้อ 114 แต่ลงรายละเอียดมากขึ้น อาจบันทึกผู้ทำรายการและเหตุผล
+
+    // --- 135. ระบบเชื่อมต่อกับระบบสมาชิกภายนอก (Loyalty Program)
+    // เพิ่ม `string รหัสสมาชิกภายนอก` ในคลาส `ลูกค้า`
+    public void ซิงค์แต้มกับระบบสมาชิกภายนอก(ลูกค้า ลูกค้า, int แต้มที่เปลี่ยนไป)
+    {
+        Console.WriteLine($"ซิงค์แต้ม {แต้มที่เปลี่ยนไป} แต้ม สำหรับลูกค้า {ลูกค้า.ชื่อลูกค้า} กับระบบสมาชิกภายนอก...");
+        // API call to external loyalty program
+    }
+
+    // --- 136. ระบบบันทึกข้อมูลการจัดส่ง (ชื่อ, ที่อยู่, รหัสไปรษณีย์)
+    // เพิ่ม field ใน `ใบเสร็จ`
+
+    // --- 137. ระบบรายงานจำนวนสินค้าที่ขายได้ในแต่ละช่วงเวลา
+    public Dictionary<string, int> รายงานจำนวนสินค้าที่ขายได้(string รหัสสินค้า, DateTime วันที่เริ่มต้น, DateTime วันที่สิ้นสุด)
+    {
+        return ประวัติการขาย
+            .Where(บิล => บิล.วันที่เวลาขาย >= วันที่เริ่มต้น && บิล.วันที่เวลาขาย <= วันที่สิ้นสุด)
+            .SelectMany(บิล => บิล.รายการสินค้า)
+            .Where(item => item.สินค้า.รหัสสินค้า == รหัสสินค้า)
+            .GroupBy(item => item.สินค้า.ชื่อสินค้า) // หรือจะ Group ตามวันที่/เวลา
+            .ToDictionary(g => g.Key, g => g.Sum(item => item.จำนวน));
+    }
+
+    // --- 138. ระบบจัดการคืนเงินแบบบางส่วน
+    public void คืนเงินบางส่วน(string เลขที่บิล, decimal จำนวนเงินที่คืน, string เหตุผล)
+    {
+        var บิล = ประวัติการขาย.FirstOrDefault(b => b.เลขที่บิล == เลขที่บิล);
+        if (บิล != null && บิล.ยอดสุทธิที่ต้องชำระ >= จำนวนเงินที่คืน)
+        {
+            // Logic ในการปรับปรุงยอดเงินในบิล หรือสร้างบิลคืนเงินใหม่
+            Console.WriteLine($"คืนเงินบางส่วน {จำนวนเงินที่คืน:N2} บาท สำหรับบิล {เลขที่บิล} เนื่องจาก {เหตุผล}");
+            // อาจจะบันทึกรายการคืนเงินนี้ในประวัติกะด้วย
+        }
+    }
+
+    // --- 139. ระบบสรุปยอดรับชำระและยอดคืนเงินในแต่ละกะ
+    // เพิ่ม field `ยอดรวมรับชำระ`, `ยอดรวมคืนเงิน` ในคลาส `ข้อมูลกะ`
+
+    // --- 140. ระบบจัดการโปรโมชั่นแบบซ้อนทับกันได้ (Stackable Promotions)
+    // ต้องมี Logic การคำนวณส่วนลดที่ซับซ้อนขึ้น โดยพิจารณาลำดับการใช้โปรโมชั่น
+
+    // --- 141. ระบบกำหนดราคาพิเศษสำหรับสินค้าตามช่วงเวลาหรือวัน/เวลา
+    // เพิ่ม `List<ราคาตามช่วงเวลา>` ในคลาส `สินค้า`
+    public decimal รับราคาปัจจุบันของสินค้า(สินค้า สินค้า)
+    {
+        var ราคาพิเศษที่ใช้งานได้ = สินค้า.ราคาพิเศษตามช่วงเวลา?
+            .FirstOrDefault(p => DateTime.Now >= p.วันที่เริ่มต้น && DateTime.Now <= p.วันที่สิ้นสุด &&
+                                  DateTime.Now.TimeOfDay >= p.เวลาเริ่มต้น && DateTime.Now.TimeOfDay <= p.เวลาสิ้นสุด);
+        return ราคาพิเศษที่ใช้งานได้?.ราคา ?? สินค้า.ราคาต่อหน่วย;
+    }
+
+    // --- 142. ระบบแจ้งเตือนเมื่อยอดขายต่ำกว่าเป้าหมาย
+    public bool ตรวจสอบเป้าหมายยอดขาย(decimal เป้าหมายรายวัน)
+    {
+        var ยอดขายวันนี้ = ประวัติการขาย.Where(b => b.วันที่เวลาขาย.Date == DateTime.Today).Sum(b => b.ยอดสุทธิที่ต้องชำระ);
+        if (ยอดขายวันนี้ < เป้าหมายรายวัน)
+        {
+            Console.WriteLine($"แจ้งเตือน: ยอดขายวันนี้ {ยอดขายวันนี้:N2} ต่ำกว่าเป้าหมาย {เป้าหมายรายวัน:N2}");
+            return false;
+        }
+        return true;
+    }
+
+    // --- 143. ระบบเก็บประวัติการเปิด-ปิดกะ
+    // ทำไปแล้วใน `ประวัติกะขาย`
+
+    // --- 144. ระบบบังคับให้ผู้จัดการอนุมัติการปรับเปลี่ยนราคา/ส่วนลด
+    // เพิ่ม `bool สามารถปรับเปลี่ยนราคาได้` ในคลาส `พนักงาน`
+    public bool ปรับเปลี่ยนราคาต้องอนุมัติ(decimal ราคาใหม่, พนักงาน พนักงานผู้ทำรายการ)
+    {
+        if (!พนักงานผู้ทำรายการ.สามารถปรับเปลี่ยนราคาได้)
+        {
+            Console.WriteLine("ต้องการการอนุมัติจากผู้จัดการเพื่อปรับเปลี่ยนราคา");
+            // Logic เพื่อเรียกผู้จัดการมาอนุมัติ (เช่น ขอรหัสผ่านผู้จัดการ)
+            return false;
+        }
+        return true;
+    }
+
+    // --- 145. ระบบสร้างใบเสร็จแบบย่อ/แบบเต็ม
+    // ทำได้ในฟังก์ชัน `พิมพ์ใบเสร็จ` โดยรับพารามิเตอร์ `แบบย่อ` หรือ `แบบเต็ม`
+
+    // --- 146. ระบบเชื่อมต่อกับเครื่องชั่งน้ำหนักสินค้า (สำหรับสินค้าที่ขายตามน้ำหนัก)
+    public decimal อ่านค่าน้ำหนักจากเครื่องชั่ง()
+    {
+        Console.WriteLine("กำลังอ่านค่าน้ำหนักจากเครื่องชั่ง...");
+        // Simulate reading from scale
+        return 1.5m; // สมมติ 1.5 กิโลกรัม
+    }
+
+    // --- 147. ระบบจัดการค่าธรรมเนียมบัตรเครดิต/ธนาคาร (Transaction Fee)
+    // คำนวณและเพิ่มเป็นรายการในใบเสร็จ หรือเป็นค่าใช้จ่ายแยก
+
+    // --- 148. ระบบบันทึกราคาขายสินค้า ณ เวลาที่ทำรายการ (เพื่อการตรวจสอบย้อนหลัง)
+    // เพิ่ม `decimal ราคาที่บันทึกขณะเพิ่ม` ในคลาส `รายการสินค้าในตะกร้า`
+
+    // --- 149. ระบบสำรองข้อมูลอัตโนมัติ
+    public void สำรองข้อมูล()
+    {
+        Console.WriteLine("กำลังสำรองข้อมูลระบบ POS อัตโนมัติ...");
+        // Logic for database backup
+        Console.WriteLine("สำรองข้อมูลสำเร็จ");
+    }
+
+    // --- 150. ระบบรายงานการยกเลิกบิล/คืนสินค้า
+    public List<ใบเสร็จ> รายงานการยกเลิกและคืนสินค้า(DateTime วันที่เริ่มต้น, DateTime วันที่สิ้นสุด)
+    {
+        return ประวัติการขาย
+            .Where(บิล => บิล.วันที่เวลาขาย >= วันที่เริ่มต้น && บิล.วันที่เวลาขาย <= วันที่สิ้นสุด &&
+                          (บิล.สถานะบิล == "ยกเลิก" || บิล.สถานะบิล.Contains("คืนสินค้า")))
+            .ToList();
+    }
+
+    // ฟังก์ชันเพิ่มเติมสำหรับ `ระบบPOS` เพื่อการจัดการที่ครบวงจรขึ้น
+    public void เพิ่มสินค้า(สินค้า สินค้าใหม่)
+    {
+        คลังสินค้า.Add(สินค้าใหม่);
+        Console.WriteLine($"เพิ่มสินค้า {สินค้าใหม่.ชื่อสินค้า} (รหัส: {สินค้าใหม่.รหัสสินค้า}) เข้าสู่ระบบแล้ว");
+    }
+
+    public สินค้า รับข้อมูลสินค้า(string รหัสสินค้า)
+    {
+        return คลังสินค้า.FirstOrDefault(s => s.รหัสสินค้า == รหัสสินค้า);
+    }
+
+    public void แสดงตะกร้าสินค้า()
+    {
+        Console.WriteLine("\n--- รายการในตะกร้า ---");
+        if (!ตะกร้าสินค้า.Any())
+        {
+            Console.WriteLine("ตะกร้าสินค้าว่างเปล่า");
             return;
         }
+        foreach (var item in ตะกร้าสินค้า)
+        {
+            Console.WriteLine($"- {item.สินค้า.ชื่อสินค้า} ({item.สินค้า.รหัสสินค้า}) x {item.จำนวน} = {item.ราคารวมรายการ:N2} (ส่วนลด: {item.ส่วนลดรายการ:N2})");
+        }
+        Console.WriteLine($"ยอดรวมก่อนหักส่วนลด: {ตะกร้าสินค้า.Sum(x => x.ราคารวมรายการ):N2}");
+        Console.WriteLine($"ส่วนลดรวม: {ตะกร้าสินค้า.Sum(x => x.ส่วนลดรายการ):N2}");
+        Console.WriteLine($"ยอดรวมหลังหักส่วนลด: {ตะกร้าสินค้า.Sum(x => x.ราคารวมรายการ - x.ส่วนลดรายการ):N2}");
+        Console.WriteLine("-----------------------\n");
     }
 
-    // Add a special "bundle" item to the cart, or add individual items with a discount applied
-    // For simplicity, we'll add a single item representing the bundle.
-    // In a real system, you might add the individual items and adjust their prices.
-    var bundleProduct = new Product { Id = bundle.Id, Name = bundle.Name, UnitPrice = bundle.BundlePrice, StockQuantity = (int)quantity, UnitOfMeasure = "Bundle" };
-    CurrentOrder.Items.Add(new CartItem { Product = bundleProduct, Quantity = quantity, ItemPrice = bundle.BundlePrice * quantity });
-
-    // Deduct stock for individual items within the bundle
-    foreach (var productId in bundle.ProductIdsInBundle)
+    public void ล็อกอิน(string รหัสพนักงาน, string รหัสผ่าน)
     {
-        var product = _products.FirstOrDefault(p => p.Id == productId);
-        if (product != null)
+        var พนักงาน = ฐานข้อมูลพนักงาน.FirstOrDefault(p => p.รหัสพนักงาน == รหัสพนักงาน && p.รหัสผ่าน == รหัสผ่าน);
+        if (พนักงาน != null)
         {
-            product.StockQuantity -= (int)quantity;
+            พนักงานที่เข้าสู่ระบบปัจจุบัน = พนักงาน;
+            Console.WriteLine($"ล็อกอินสำเร็จ: {พนักงาน.ชื่อพนักงาน} (สิทธิ์: {พนักงาน.สิทธิ์การใช้งาน})");
+        }
+        else
+        {
+            Console.WriteLine("รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง");
         }
     }
-    CalculateOrderTotals();
-    Console.WriteLine($"Bundle '{bundle.Name}' added to cart.");
-}
 
-// 52. รองรับการใช้งานเครื่องชั่งน้ำหนัก (Weight Scale Integration)
-// This requires hardware integration, often via serial port or network.
-public decimal GetWeightFromScale()
-{
-    // Mock implementation
-    Console.WriteLine("Please place item on scale and press enter (simulating weight reading).");
-    // In real-world, this would involve reading from a serial port or SDK
-    // return _weightScaleService.ReadWeight();
-    return 1.5m; // Example weight in KG
-}
-
-// 53. ระบบจัดการค่าธรรมเนียมบัตรเครดิต (Credit Card Surcharge)
-public decimal CalculateCreditCardSurcharge(decimal amount)
-{
-    const decimal SurchargeRate = 0.03m; // 3% surcharge
-    return amount * SurchargeRate;
-}
-
-// 54. ระบบสำรองข้อมูลและกู้คืน (Backup & Restore)
-// Typically handled by database management system (e.g., SQL Server backup, SQLite file copy)
-public void PerformDatabaseBackup(string path)
-{
-    // Example: copy SQLite file or call SQL Server backup command
-    Console.WriteLine($"Database backup initiated to {path}");
-}
-
-// 55. ระบบจัดการผู้จัดจำหน่าย (Supplier Management)
-public class Supplier
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-    public string ContactPerson { get; set; }
-    public string Phone { get; set; }
-}
-private List<Supplier> _suppliers = new List<Supplier>();
-public void AddSupplier(Supplier supplier) { _suppliers.Add(supplier); }
-public void UpdateSupplier(Supplier supplier) { /* Find and update */ }
-
-// 56. ระบบบันทึกการรับสินค้าเข้าสต็อก (Goods Receipt)
-public void RecordGoodsReceipt(int productId, int quantity, int supplierId)
-{
-    var product = _products.FirstOrDefault(p => p.Id == productId);
-    var supplier = _suppliers.FirstOrDefault(s => s.Id == supplierId);
-    if (product != null && supplier != null)
+    public ใบเสร็จ ชำระเงิน(string ช่องทางการชำระ, decimal ยอดเงินที่รับมา, ลูกค้า ลูกค้าที่ซื้อ = null, decimal ค่าขนส่ง = 0)
     {
-        product.StockQuantity += quantity;
-        Console.WriteLine($"Received {quantity} of {product.Name} from {supplier.Name}. New stock: {product.StockQuantity}");
-        // Log this transaction
-    }
-}
+        // คำนวณยอดเงินสุทธิ
+        var ยอดรวมก่อนหัก = ตะกร้าสินค้า.Sum(x => x.ราคารวมรายการ);
+        var ส่วนลดทั้งหมด = ตะกร้าสินค้า.Sum(x => x.ส่วนลดรายการ);
+        var ยอดรวมหลังหักส่วนลด = ยอดรวมก่อนหัก - ส่วนลดทั้งหมด;
+        var ภาษี = คำนวณภาษีมูลค่าเพิ่มจากตะกร้า(); // ใช้ฟังก์ชันใหม่ที่รองรับการคิดภาษีเฉพาะรายการ
+        var ยอดสุทธิที่ต้องชำระ = ยอดรวมหลังหักส่วนลด + ภาษี + ค่าขนส่ง;
 
-// 57. ระบบจัดการการคืนสินค้าให้ผู้จัดจำหน่าย (Return to Supplier)
-public void ReturnToSupplier(int productId, int quantity, int supplierId, string reason)
-{
-    var product = _products.FirstOrDefault(p => p.Id == productId);
-    var supplier = _suppliers.FirstOrDefault(s => s.Id == supplierId);
-    if (product != null && supplier != null && product.StockQuantity >= quantity)
-    {
-        product.StockQuantity -= quantity;
-        Console.WriteLine($"Returned {quantity} of {product.Name} to {supplier.Name} due to {reason}. Remaining stock: {product.StockQuantity}");
-        // Log this transaction
-    }
-}
-
-// 58. ระบบจัดการภาษีอื่น ๆ (Other Tax Handling) - เช่น ภาษีสรรพสามิต
-// Requires a more flexible tax model, e.g., TaxRule per product/category
-public decimal CalculateExciseTax(Product product, decimal quantity)
-{
-    // Example: Alcohol may have excise tax
-    if (product.Category == "Alcohol")
-    {
-        return product.UnitPrice * quantity * 0.15m; // 15% excise tax
-    }
-    return 0;
-}
-
-// 59. ระบบจำกัดสิทธิ์การเข้าถึงข้อมูล (Data Access Control)
-// (Implemented at a higher level, e.g., in service layer using UserRole)
-// public bool CanViewSalesReports(User user) { return user.Role == UserRole.Admin || user.Role == UserRole.Manager; }
-
-// 60. ระบบจัดการราคาแบบหลายระดับ (Tiered Pricing) - เช่น ราคาส่ง, ราคาปลีก
-public decimal GetTieredPrice(Product product, decimal quantity)
-{
-    if (quantity >= 100) return product.UnitPrice * 0.80m; // 20% discount for 100+
-    if (quantity >= 50) return product.UnitPrice * 0.90m;  // 10% discount for 50+
-    return product.UnitPrice;
-}
-
-// 61. ระบบแจ้งเตือนเมื่อยอดขายถึงเป้า (Sales Target Alert)
-public void CheckSalesTarget(decimal dailyTarget)
-{
-    var todaySales = _orders.Where(o => o.OrderDate.Date == DateTime.Today && o.Status == OrderStatus.Completed).Sum(o => o.NetAmount);
-    if (todaySales >= dailyTarget)
-    {
-        Console.WriteLine($"Daily sales target of {dailyTarget:C} reached! Current sales: {todaySales:C}");
-    }
-}
-
-// 62. ระบบแสดงผลบนจอแสดงผลลูกค้า (Customer Facing Display)
-// (Requires integration with a secondary display, often a separate thread/process updating the display)
-public void UpdateCustomerDisplay(string message)
-{
-    Console.WriteLine($"[Customer Display]: {message}");
-}
-
-// 63. ระบบควบคุมลิ้นชักเก็บเงิน (Cash Drawer Control)
-// (Requires hardware integration, e.g., sending a pulse signal via serial/USB printer)
-public void OpenCashDrawer()
-{
-    Console.WriteLine("Cash drawer opened.");
-    // Example: _cashDrawerService.Open();
-}
-
-// 64. ระบบจัดการสถานะการชำระเงิน (Payment Status Management) - Pending, Approved, Failed
-// (Already partially covered by OrderStatus.Completed, but can be more granular for payment gateway interactions)
-// public void UpdatePaymentStatus(int orderId, string status) { /* ... */ }
-
-// 65. ระบบพิมพ์ป้ายราคา/บาร์โค้ดสินค้า (Label/Barcode Printing)
-// (Requires integration with label printer SDKs or generating print-ready files)
-public void PrintProductLabel(Product product, int quantity)
-{
-    Console.WriteLine($"Printing {quantity} labels for Product: {product.Name} (Barcode: {product.Code})");
-}
-
-// 66. ระบบบันทึกการเคลื่อนไหวสต็อก (Stock Movement Log) - เช่น รับเข้า, ขายออก, โอนย้าย, ปรับปรุง
-public class StockMovement
-{
-    public int Id { get; set; }
-    public DateTime Timestamp { get; set; }
-    public int ProductId { get; set; }
-    public string MovementType { get; set; } // e.g., "Sale", "Receipt", "Adjustment", "Transfer"
-    public int QuantityChange { get; set; }
-    public string Reference { get; set; } // Order ID, PO ID etc.
-    public int UserId { get; set; }
-}
-private List<StockMovement> _stockMovements = new List<StockMovement>();
-public void LogStockMovement(int productId, string type, int quantityChange, string reference, int userId)
-{
-    _stockMovements.Add(new StockMovement
-    {
-        Id = _stockMovements.Count + 1,
-        Timestamp = DateTime.Now,
-        ProductId = productId,
-        MovementType = type,
-        QuantityChange = quantityChange,
-        Reference = reference,
-        UserId = userId
-    });
-}
-
-// 67. ระบบจัดการค่าใช้จ่ายหน้าร้าน (Petty Cash/Expense Management)
-public class PettyCashTransaction
-{
-    public int Id { get; set; }
-    public DateTime Date { get; set; }
-    public string Description { get; set; }
-    public decimal Amount { get; set; }
-    public string Type { get; set; } // "Expense", "Income"
-    public int UserId { get; set; }
-}
-private List<PettyCashTransaction> _pettyCashTransactions = new List<PettyCashTransaction>();
-public void AddPettyCashExpense(string description, decimal amount, int userId)
-{
-    _pettyCashTransactions.Add(new PettyCashTransaction
-    {
-        Id = _pettyCashTransactions.Count + 1,
-        Date = DateTime.Now,
-        Description = description,
-        Amount = amount,
-        Type = "Expense",
-        UserId = userId
-    });
-}
-
-// 68. ระบบอนุมัติการทำรายการพิเศษ (Override/Approval Workflow) - เช่น การลดราคามากเกินไป, คืนเงิน
-public bool RequestOverrideApproval(User requestingUser, User manager, string action, decimal amount)
-{
-    // In a real system, this would involve sending a notification to a manager,
-    // who would then approve/deny via their interface.
-    Console.WriteLine($"User {requestingUser.Username} requesting approval for '{action}' of {amount:C}. Awaiting manager approval...");
-    // For simulation, assume auto-approved by Admin
-    return manager.Role == UserRole.Admin || manager.Role == UserRole.Manager;
-}
-
-// 69. ระบบเชื่อมต่อกับเครื่องรูดบัตร (EDC Terminal Integration)
-// (Similar to 46, specific to various EDC providers and their APIs/SDKs)
-// public bool InitiateEDCPayment(decimal amount) { /* ... */ return true; }
-
-// 70. ระบบรายงานวิเคราะห์ข้อมูลการขาย (Sales Analytics Dashboard)
-// (Requires aggregation of sales data, often using a reporting tool or custom UI)
-public Dictionary<string, decimal> GetSalesByDayOfWeek()
-{
-    return _orders.Where(o => o.Status == OrderStatus.Completed)
-                  .GroupBy(o => o.OrderDate.DayOfWeek.ToString())
-                  .ToDictionary(g => g.Key, g => g.Sum(o => o.NetAmount));
-}
-
-// 71. ระบบจัดการลูกค้าองค์กร/ลูกค้าเครดิต (Corporate/Credit Customers)
-public class CorporateCustomer : Customer
-{
-    public decimal CreditLimit { get; set; }
-    public decimal CurrentCreditBalance { get; set; }
-}
-public void ProcessCreditPayment(CorporateCustomer customer, decimal amount)
-{
-    if (customer.CurrentCreditBalance + amount <= customer.CreditLimit)
-    {
-        customer.CurrentCreditBalance += amount;
-        Console.WriteLine($"Processed credit payment for {amount:C}. New balance: {customer.CurrentCreditBalance:C}");
-    }
-    else
-    {
-        Console.WriteLine("Credit limit exceeded.");
-    }
-}
-
-// 72. ระบบจัดการการนับสต็อก (Stock Counting / Inventory Audit)
-public void StartStockCount(string warehouseId)
-{
-    Console.WriteLine($"Initiating stock count for warehouse {warehouseId}.");
-    // Generate a count sheet or enable counting mode
-}
-public void RecordStockCount(int productId, int actualQuantity)
-{
-    var product = _products.FirstOrDefault(p => p.Id == productId);
-    if (product != null)
-    {
-        int difference = actualQuantity - product.StockQuantity;
-        if (difference != 0)
+        var ใบเสร็จใหม่ = new ใบเสร็จ
         {
-            Console.WriteLine($"Stock adjustment for {product.Name}: {difference} units.");
-            product.StockQuantity = actualQuantity;
-            LogStockMovement(productId, "Adjustment", difference, "Stock Count", _users.First().Id); // Log adjustment
+            เลขที่บิล = Guid.NewGuid().ToString(),
+            วันที่เวลาขาย = DateTime.Now,
+            รายการสินค้า = new List<รายการสินค้าในตะกร้า>(ตะกร้าสินค้า),
+            ยอดรวมก่อนหักส่วนลด = ยอดรวมก่อนหัก,
+            ส่วนลดรวม = ส่วนลดทั้งหมด,
+            ยอดรวมหลังหักส่วนลด = ยอดรวมหลังหักส่วนลด,
+            ภาษีมูลค่าเพิ่ม = ภาษี,
+            ยอดสุทธิที่ต้องชำระ = ยอดสุทธิที่ต้องชำระ,
+            ช่องทางการชำระเงิน = ช่องทางการชำระ,
+            ยอดเงินที่รับมา = ยอดเงินที่รับมา,
+            ข้อมูลลูกค้า = ลูกค้าที่ซื้อ,
+            ข้อมูลพนักงานขาย = พนักงานที่เข้าสู่ระบบปัจจุบัน,
+            ค่าจัดส่ง = ค่าขนส่ง,
+            สถานะบิล = "เสร็จสมบูรณ์",
+            รหัสกะที่ขาย = กะปัจจุบัน?.รหัสกะ // บันทึกรหัสกะที่เกี่ยวข้อง
+        };
+
+        if (ช่องทางการชำระ == "เงินสด")
+        {
+            ใบเสร็จใหม่.เงินทอน = ยอดเงินที่รับมา - ยอดสุทธิที่ต้องชำระ;
         }
+
+        // อัพเดตสต็อกและแต้มสะสม
+        foreach (var รายการในบิล in ตะกร้าสินค้า)
+        {
+            var สินค้าในคลัง = คลังสินค้า.FirstOrDefault(s => s.รหัสสินค้า == รายการในบิล.สินค้า.รหัสสินค้า);
+            if (สินค้าในคลัง != null)
+            {
+                สินค้าในคลัง.จำนวนคงเหลือ -= รายการในบิล.จำนวน;
+            }
+        }
+
+        if (ลูกค้าที่ซื้อ != null)
+        {
+            ลูกค้าที่ซื้อ.แต้มสะสม += (int)(ยอดสุทธิที่ต้องชำระ / 100);
+            if (ลูกค้าที่ซื้อ.ประวัติการซื้อ == null) ลูกค้าที่ซื้อ.ประวัติการซื้อ = new List<ใบเสร็จ>();
+            ลูกค้าที่ซื้อ.ประวัติการซื้อ.Add(ใบเสร็จใหม่);
+        }
+
+        ประวัติการขาย.Add(ใบเสร็จใหม่);
+        กะปัจจุบัน?.บิลที่ขายในกะ.Add(ใบเสร็จใหม่); // เพิ่มบิลลงในกะปัจจุบัน
+        ตะกร้าสินค้า.Clear();
+        Console.WriteLine($"ชำระเงินสำเร็จ! เลขที่บิล: {ใบเสร็จใหม่.เลขที่บิล}");
+        return ใบเสร็จใหม่;
     }
 }
-
-// 73. ระบบจัดการราคาตามหน่วยย่อย/หน่วยใหญ่ (Unit Conversion Pricing) - เช่น ซื้อเป็นโหลถูกกว่าซื้อเป็นชิ้น
-// (Requires a unit conversion table for products and logic to select price based on purchased unit)
-public decimal GetConvertedPrice(Product product, string desiredUnit)
-{
-    // Example: if product is "Egg" (piece) and desiredUnit is "Dozen"
-    // return product.UnitPrice * 12 * 0.95m; // Discounted dozen price
-    return product.UnitPrice;
-}
-
-// 74. ระบบจัดการรายการโปรด/สินค้าขายเร็ว (Favorite/Quick Sale Items)
-// (UI feature: often a configurable grid of popular items for fast selection)
-public List<Product> GetQuickSaleItems()
-{
-    // Return a predefined list or frequently sold items
-    return _products.Where(p => p.Id == 1 || p.Id == 2).ToList();
-}
-
-// 75. ระบบแจ้งเตือนข้อผิดพลาด (Error Logging and Alerts)
-public void LogError(string errorMessage, string source)
-{
-    Console.Error.WriteLine($"[ERROR] {DateTime.Now}: {errorMessage} (Source: {source})");
-    // In a real system, log to file, database, or monitoring service
-}
-
-// 76. ระบบจัดการผู้รับผิดชอบ (Responsible Person for Transactions)
-// (Already covered by associating User with Order, Shift Management)
-
-// 77. ระบบจัดการการออกใบกำกับภาษีเต็มรูป (Full Tax Invoice Issuance)
-// (Requires more comprehensive customer and company tax details, and specific format)
-public void PrintFullTaxInvoice(Order order)
-{
-    Console.WriteLine($"\n--- Full Tax Invoice for Order ID: {order.Id} ---");
-    // Include all required tax invoice details (customer tax ID, company address etc.)
-    PrintReceipt(order); // Re-use basic receipt printing, add more details
-    Console.WriteLine("--- End Full Tax Invoice ---\n");
-}
-
-// 78. ระบบจัดการการบันทึกข้อมูลภาษีซื้อ/ภาษีขาย (Input/Output Tax Recording)
-// (Part of comprehensive accounting integration, often handled by exporting data)
-// public void RecordInputTax(decimal amount, string supplierTaxId) { /* ... */ }
-// public void RecordOutputTax(decimal amount, string customerTaxId) { /* ... */ }
-
-// 79. ระบบจัดการรูปภาพสินค้า (Product Image Management)
-public string GetProductImageUrl(int productId)
-{
-    // Return URL/path from database
-    return $"./images/product_{productId}.jpg";
-}
-
-// 80. ระบบจัดการหมวดหมู่สินค้า (Product Category Management)
-// (Product model already has Category, this is for CRUD on categories)
-public class ProductCategory
-{
-    public int Id { get; set; }
-    public string Name { get; set; }
-}
-private List<ProductCategory> _categories = new List<ProductCategory>();
-public void AddCategory(string name) { _categories.Add(new ProductCategory { Id = _categories.Count + 1, Name = name }); }
-
-// 81. ระบบจัดการหน่วยนับสินค้า (Unit of Measure Management)
-// (Product model has UnitOfMeasure, this is for master list)
-public List<string> GetAvailableUnitsOfMeasure()
-{
-    return new List<string> { "Piece", "Pack", "Kg", "Litre", "Dozen" };
-}
-
-// 82. ระบบแจ้งเตือนการอัปเดตซอฟต์แวร์ (Software Update Notification)
-public bool IsSoftwareUpdateAvailable(string currentVersion)
-{
-    // Check external server for latest version
-    // return _updateService.CheckForUpdates(currentVersion);
-    return true; // Simulating an update is available
-}
-
-// 83. ระบบล็อกเอาต์อัตโนมัติเมื่อไม่มีการใช้งาน (Auto Logout on Inactivity)
-// (Requires monitoring user activity / input events in UI)
-public void SetAutoLogoutTimer(int minutes)
-{
-    Console.WriteLine($"Auto-logout set for {minutes} minutes of inactivity.");
-    // Implement a timer that triggers logout if no input is detected
-}
-
-// 84. ระบบจัดการการโอนสต็อกระหว่างคลัง (Stock Transfer between Warehouses)
-public void TransferStock(int productId, int fromWarehouseId, int toWarehouseId, int quantity)
-{
-    // Deduct from source warehouse, add to destination warehouse
-    Console.WriteLine($"Transferred {quantity} of {productId} from warehouse {fromWarehouseId} to {toWarehouseId}.");
-    LogStockMovement(productId, "Transfer Out", -quantity, $"To WH {toWarehouseId}", _users.First().Id);
-    LogStockMovement(productId, "Transfer In", quantity, $"From WH {fromWarehouseId}", _users.First().Id);
-}
-
-// 85. ระบบจัดการหมายเลขซีเรียลสินค้า (Serial Number Tracking)
-// (Requires each product item to have a unique serial number)
-public class SerializedProductInstance : CartItem
-{
-    public string SerialNumber { get; set; }
-}
-// When adding, track serial numbers:
-// public void AddSerializedItem(Product product, string serialNumber) { /* ... */ }
-
-// 86. ระบบจัดการบัตรกำนัล/บัตรของขวัญ (Gift Card Management)
-public class GiftCard
-{
-    public string Code { get; set; }
-    public decimal Balance { get; set; }
-    public DateTime ExpiryDate { get; set; }
-    public bool IsActive { get; set; }
-}
-private List<GiftCard> _giftCards = new List<GiftCard>();
-public decimal RedeemGiftCard(string code, decimal amountToRedeem)
-{
-    var card = _giftCards.FirstOrDefault(c => c.Code == code && c.IsActive && c.ExpiryDate > DateTime.Now);
-    if (card != null && card.Balance >= amountToRedeem)
-    {
-        card.Balance -= amountToRedeem;
-        Console.WriteLine($"Redeemed {amountToRedeem:C} from gift card {code}. Remaining balance: {card.Balance:C}");
-        return amountToRedeem;
-    }
-    Console.WriteLine("Invalid or insufficient gift card.");
-    return 0;
-}
-
-// 87. ระบบจัดการการหัก ณ ที่จ่าย (Withholding Tax)
-// (Complex accounting feature, usually for B2B or specific services)
-public decimal CalculateWithholdingTax(decimal amount, decimal rate)
-{
-    return amount * rate;
-}
-
-// 88. ระบบจัดการการรับชำระค่าสาธารณูปโภค (Utility Bill Payment Service)
-// (Requires integration with specific bill payment APIs or service providers)
-public bool ProcessUtilityBillPayment(string biller, string accountNumber, decimal amount)
-{
-    Console.WriteLine($"Processing {biller} bill for account {accountNumber} for {amount:C}.");
-    // Call external API
-    return true;
-}
-
-// 89. ระบบจัดการค่าบริการ/ค่าใช้จ่ายเพิ่มเติม (Service Charges/Additional Fees)
-public void AddServiceCharge(decimal amount, string description)
-{
-    // Add a special item to the CurrentOrder for service charge
-    CurrentOrder.Items.Add(new CartItem
-    {
-        Product = new Product { Name = description, UnitPrice = amount, StockQuantity = 1 },
-        Quantity = 1,
-        ItemPrice = amount
-    });
-    CalculateOrderTotals();
-    Console.WriteLine($"Added service charge: {description} - {amount:C}");
-}
-
-// 90. ระบบจัดการการชำระเงินมัดจำ (Deposit Payment)
-public void RecordDepositPayment(int orderId, decimal amount)
-{
-    var order = _orders.FirstOrDefault(o => o.Id == orderId);
-    if (order != null)
-    {
-        // Add to order's payment details, possibly a separate field for deposits
-        Console.WriteLine($"Recorded deposit of {amount:C} for order {orderId}.");
-    }
-}
-
-// 91. ระบบจัดการการรับชำระด้วยแต้มสะสม/เครดิต (Loyalty Points/Credit Payment)
-public decimal PayWithLoyaltyPoints(Customer customer, decimal pointsToRedeem)
-{
-    if (customer.LoyaltyPoints >= pointsToRedeem)
-    {
-        customer.LoyaltyPoints -= pointsToRedeem;
-        decimal cashEquivalent = pointsToRedeem / 10; // e.g., 10 points = 1 THB
-        Console.WriteLine($"Redeemed {pointsToRedeem} points for {cashEquivalent:C}. New points: {customer.LoyaltyPoints}");
-        return cashEquivalent;
-    }
-    Console.WriteLine("Insufficient loyalty points.");
-    return 0;
-}
-
-// 92. ระบบจัดการการยกเลิกรายการสินค้าในบิล (Cancel Item in Order)
-public void RemoveItemFromCurrentOrder(string productIdentifier)
-{
-    var itemToRemove = CurrentOrder.Items.FirstOrDefault(item =>
-        item.Product.Code == productIdentifier ||
-        item.Product.Name.Contains(productIdentifier, StringComparison.OrdinalIgnoreCase));
-
-    if (itemToRemove != null)
-    {
-        CurrentOrder.Items.Remove(itemToRemove);
-        CalculateOrderTotals();
-        Console.WriteLine($"Removed {itemToRemove.Product.Name} from cart.");
-        RecordAudit(CurrentOrder.Id, $"Removed item {itemToRemove.Product.Name}", _currentCashier?.Username ?? "System", DateTime.Now);
-    }
-    else
-    {
-        Console.WriteLine($"Product '{productIdentifier}' not found in current order.");
-    }
-}
-
-// 93. ระบบจัดการการขอใบเสนอราคา (Quotation Generation)
-public Order GenerateQuotation(Customer customer, List<CartItem> items)
-{
-    var quotation = new Order
-    {
-        Id = _orders.Count + 1, // Assign temporary ID
-        OrderDate = DateTime.Now,
-        Customer = customer,
-        Items = items,
-        Status = OrderStatus.Pending, // Or a specific 'Quotation' status
-        CreatedDate = DateTime.Now
-    };
-    // Calculate totals for quotation
-    // Save quotation, but don't affect stock
-    Console.WriteLine($"Quotation generated for {customer.Name} with ID: {quotation.Id}");
-    return quotation;
-}
-
-// 94. ระบบจัดการการชำระเงินด้วย Wallet/E-Wallet (E-Wallet Payment)
-// (Requires integration with specific E-Wallet providers like PromptPay QR, TrueMoney, etc.)
-public bool ProcessEWalletPayment(decimal amount, string walletType)
-{
-    Console.WriteLine($"Initiating {walletType} payment for {amount:C}...");
-    // Call E-Wallet API
-    return true; // Assume success
-}
-
-// 95. ระบบจัดการส่วนลดตามกลุ่มลูกค้า (Customer Group Discounts)
-public decimal GetCustomerGroupDiscount(Customer customer, decimal subTotal)
-{
-    // Example: VIP customers get 10% off if order > 500
-    if (customer.LoyaltyPoints > 1000 && subTotal > 500)
-    {
-        return subTotal * 0.10m;
-    }
-    return 0;
-}
-
-// 96. ระบบจัดการการคืนเงินแบบเต็มบิล/บางส่วน (Full/Partial Refund)
-// (RefundOrder already handles full, RefundProductFromOrder handles partial)
-
-// 97. ระบบจัดการสินค้าคงคลังติดลบ (Negative Stock Handling)
-// (Configuration option: allow/disallow negative stock. If allowed, issue alert.)
-public bool AllowNegativeStock { get; set; } = false; // Default: disallow
-
-// Inside AddItemToOrder or when deducting stock:
-// if (!AllowNegativeStock && product.StockQuantity < quantity) { // Block sale }
-// else if (product.StockQuantity < quantity) { Console.WriteLine("Warning: Negative stock will occur!"); }
-
-// 98. ระบบจัดการการปรับปรุงสต็อก (Stock Adjustment) - เพิ่ม/ลดสต็อกโดยไม่มีการซื้อขาย
-public void AdjustStock(int productId, int quantityChange, string reason, int userId)
-{
-    var product = _products.FirstOrDefault(p => p.Id == productId);
-    if (product != null)
-    {
-        product.StockQuantity += quantityChange;
-        Console.WriteLine($"Stock for {product.Name} adjusted by {quantityChange}. New stock: {product.StockQuantity}. Reason: {reason}");
-        LogStockMovement(productId, "Adjustment", quantityChange, reason, userId);
-    }
-}
-
-// 99. ระบบจัดการผู้ดูแลระบบ (Admin Panel/User Interface for Admin)
-// (This refers to the UI/backend for managing users, products, reports, etc.)
-// No direct code snippet for this, as it's a UI/Architecture concern.
-
-// 100. ระบบจัดการการจัดส่งสินค้า (Delivery Management) - Tracking, Assigning Driver
-public class Delivery
-{
-    public int Id { get; set; }
-    public int OrderId { get; set; }
-    public string Status { get; set; } // "Pending", "Out for Delivery", "Delivered"
-    public string DriverName { get; set; }
-    public DateTime? DeliveryTime { get; set; }
-    public string DeliveryAddress { get; set; }
-}
-private List<Delivery> _deliveries = new List<Delivery>();
-public void AssignDelivery(int orderId, string driverName)
-{
-    var delivery = new Delivery { Id = _deliveries.Count + 1, OrderId = orderId, Status = "Pending", DriverName = driverName };
-    _deliveries.Add(delivery);
-    Console.WriteLine($"Order {orderId} assigned to {driverName} for delivery.");
-}
-public void UpdateDeliveryStatus(int deliveryId, string newStatus)
-{
-    var delivery = _deliveries.FirstOrDefault(d => d.Id == deliveryId);
-    if (delivery != null)
-    {
-        delivery.Status = newStatus;
-        if (newStatus == "Delivered") delivery.DeliveryTime = DateTime.Now;
-        Console.WriteLine($"Delivery {deliveryId} status updated to {newStatus}.");
-    }
-}
-
-// End of PosSystem class
 ```
 
 ---
 
-**Explanation of the additional points:**
+### รายละเอียดฟีเจอร์ใหม่ 50 ข้อ
 
-These 50 points expand the POS system's capabilities into more advanced areas such as:
+101.  **รองรับการคิดภาษีสำหรับสินค้าแต่ละรายการ (ยกเว้นสินค้าที่ไม่คิดภาษี)**:
+    * เพิ่ม `bool ต้องคิดภาษี` ในคลาส `สินค้า` เพื่อระบุว่าสินค้าตัวนี้ต้องคิดภาษีหรือไม่
+    * ฟังก์ชัน `คำนวณภาษีมูลค่าเพิ่มจากตะกร้า` จะกรองเฉพาะรายการสินค้าที่ `ต้องคิดภาษี` มาคำนวณ VAT
 
-* **Inventory Management:** Bundles, goods receipt, returns to supplier, stock movement logs, stock counting, serial number tracking, negative stock handling, and stock adjustments.
-* **Pricing & Promotions:** Tiered pricing, customer group discounts.
-* **Payment & Financials:** Credit card surcharge, other tax handling (excise tax), credit/corporate customer management, gift card redemption, withholding tax, utility bill payments, service charges, deposit payments, loyalty points/credit payment, and E-wallet integration.
-* **Customer & Sales Operations:** Customer facing display, quick sale items, full tax invoice, quotation generation, and delivery management.
-* **System Administration & Maintenance:** Supplier management, backup & restore, data access control, error logging, software update notifications, and auto-logout.
-* **Hardware Integration:** Weight scale and EDC terminal (conceptual).
+102.  **รองรับบาร์โค้ดสินค้าหลายรูปแบบ (UPC, EAN, QR Code)**:
+    * เพิ่ม `string บาร์โค้ด` ในคลาส `สินค้า` (อาจใช้ `List<string>` หากรองรับหลายบาร์โค้ดต่อ 1 สินค้า)
+    * ฟังก์ชัน `ค้นหาสินค้าด้วยบาร์โค้ด` สำหรับการค้นหา
 
-As before, the C# code snippets are conceptual and aim to illustrate the logic. A full implementation would require robust error handling, database interactions (ORM like Entity Framework), a well-structured UI framework (like WPF, ASP.NET Core, or WinForms), and proper architectural patterns (e.g., MVVM, Clean Architecture).
+103.  **กำหนดจำนวนขั้นต่ำในการขายสินค้า**:
+    * เพิ่ม `int จำนวนขั้นต่ำในการขาย` ในคลาส `สินค้า`
+    * ฟังก์ชัน `ตรวจสอบจำนวนขั้นต่ำในการขาย` เพื่อตรวจสอบก่อนการเพิ่มลงตะกร้าหรือชำระเงิน
 
-This comprehensive list of features, spanning 100 points, covers a very broad range of functionalities expected from a modern POS system, making it suitable for various retail environments.
+104.  **ระบบจัดการประเภทลูกค้า (เช่น ลูกค้าทั่วไป, ลูกค้าประจำ, ลูกค้า VIP)**:
+    * เพิ่ม `string ประเภทลูกค้า` ในคลาส `ลูกค้า`
+    * ฟังก์ชัน `กำหนดประเภทลูกค้า` เพื่อตั้งค่า
+
+105.  **ระบบรายงานยอดขายตามประเภทลูกค้า**:
+    * ฟังก์ชัน `รายงานยอดขายตามประเภทลูกค้า` ที่จะสรุปยอดขายตาม `ประเภทลูกค้า`
+
+106.  **ระบบแจ้งเตือนเมื่อสินค้าใกล้หมดอายุ ณ จุดขาย**:
+    * ฟังก์ชัน `แจ้งเตือนสินค้าใกล้หมดอายุในตะกร้า` ที่จะตรวจสอบสินค้าในตะกร้าที่ใกล้หมดอายุ
+
+107.  **บันทึกคำอธิบายสินค้า**:
+    * เพิ่ม `string คำอธิบายสินค้า` ในคลาส `สินค้า`
+
+108.  **จัดการหมวดหมู่สินค้าแบบหลายระดับ (เช่น อาหาร > ขนม > คุกกี้)**:
+    * เพิ่ม `string รหัสหมวดหมู่หลัก`, `string รหัสหมวดหมู่ย่อย` ในคลาส `สินค้า`
+    * เพิ่ม `List<string> หมวดหมู่สินค้าทั้งหมด` ใน `ระบบPOS` เพื่อเก็บโครงสร้างหมวดหมู่
+
+109.  **ระบบแสดงราคาสินค้าต่อหน่วย (เช่น บาท/กิโลกรัม)**:
+    * สามารถแสดงผลได้โดยใช้ `สินค้า.ราคาต่อหน่วย` และ `สินค้า.หน่วยนับ` ใน UI ของ POS
+
+110.  **ระบบจำกัดสิทธิ์การเข้าถึงข้อมูลลูกค้า**:
+    * ต้องมีการตรวจสอบ `พนักงานที่เข้าสู่ระบบปัจจุบัน.สิทธิ์การใช้งาน` ก่อนอนุญาตให้เข้าถึงข้อมูลลูกค้าที่มีความละเอียดอ่อน
+
+111.  **บันทึกรหัสอ้างอิงการรับชำระ (เช่น เลขที่ Transaction ID ของบัตรเครดิต)**:
+    * เพิ่ม `string รหัสอ้างอิงการรับชำระ` ในคลาส `ใบเสร็จ`
+
+112.  **กำหนดจำนวนครั้งที่สามารถใช้โปรโมชั่นได้**:
+    * เพิ่ม `int จำนวนครั้งที่ใช้ได้` และ `int จำนวนครั้งที่ใช้ไปแล้ว` ในคลาส `โปรโมชั่น`
+
+113.  **ระบบบันทึกพนักงานผู้สร้าง/แก้ไขใบเสนอราคา**:
+    * เพิ่ม `string รหัสพนักงานที่สร้าง` ในคลาส `ใบเสนอราคา`
+
+114.  **ระบบรายงานการเคลื่อนไหวของสต็อกสินค้า**:
+    * ฟังก์ชัน `รายงานการเคลื่อนไหวสต็อก` ที่รวบรวมข้อมูลจากการขายและการรับสินค้า
+
+115.  **ระบบจัดการสถานะการจัดส่งสินค้า**:
+    * เพิ่ม `string สถานะการจัดส่ง` ในคลาส `ใบเสร็จ`
+    * ฟังก์ชัน `อัพเดตสถานะการจัดส่ง`
+
+116.  **ระบบแจ้งเตือนเมื่อมีคำสั่งซื้อ Pre-order ถึงกำหนดจัดส่ง**:
+    * ฟังก์ชัน `ตรวจสอบคำสั่งซื้อถึงกำหนดส่ง`
+
+117.  **ระบบจัดการค่าธรรมเนียมการชำระเงิน (เช่น ค่าธรรมเนียมบัตรเครดิต)**:
+    * ค่าธรรมเนียมสามารถคำนวณและเพิ่มใน `ใบเสร็จ` ได้หากต้องการบันทึก
+
+118.  **บันทึกหมายเหตุในรายการรับสินค้า**:
+    * เพิ่ม `string หมายเหตุ` ในคลาส `รายการรับสินค้า`
+
+119.  **ระบบรายงานสินค้าที่กำลังจะหมดสต็อก (Near Out of Stock)**:
+    * ฟังก์ชัน `รายงานสินค้าใกล้หมดสต็อก`
+
+120.  **ระบบจำกัดจำนวนสินค้าต่อรายการในบิล**:
+    * ฟังก์ชัน `จำกัดจำนวนสินค้าสูงสุดในตะกร้า`
+
+121.  **ระบบจัดการการตั้งค่าเครื่องพิมพ์ (ขนาดกระดาษ, โลโก้)**:
+    * โดยทั่วไปจะเป็นการตั้งค่าภายนอกโค้ด เช่น ไฟล์ Config หรือ UI สำหรับการตั้งค่า
+
+122.  **ระบบบันทึกการเปิด-ปิดลิ้นชักเก็บเงิน (Cash Drawer Open/Close)**:
+    * ฟังก์ชัน `บันทึกลิ้นชัก`
+
+123.  **ระบบยืนยันการรับชำระด้วยรหัสผ่าน/PIN ของพนักงาน**:
+    * ฟังก์ชัน `ยืนยันการรับชำระ` เพื่อเพิ่มความปลอดภัยในการทำรายการสำคัญ
+
+124.  **ระบบออกใบกำกับภาษีเต็มรูปแบบ**:
+    * ฟังก์ชัน `พิมพ์ใบกำกับภาษี` ซึ่งใช้ข้อมูลจาก `ใบเสร็จ` และข้อมูลผู้เสียภาษีเพิ่มเติม
+
+125.  **ระบบจัดการโปรโมชั่นแยกตามสาขา**:
+    * เพิ่ม `List<string> สาขาที่ร่วมรายการ` ในคลาส `โปรโมชั่น`
+
+126.  **ระบบแสดงราคาสินค้าก่อน-หลังหักส่วนลดในตะกร้าสินค้า**:
+    * ฟังก์ชัน `แสดงรายละเอียดตะกร้า` ที่แสดงทั้งราคาเดิมและส่วนลด
+
+127.  **ระบบเก็บข้อมูลวัน/เวลาที่สินค้าถูกเพิ่มเข้าตะกร้า**:
+    * เพิ่ม `DateTime เวลาที่เพิ่ม` ในคลาส `รายการสินค้าในตะกร้า`
+
+128.  **ระบบตั้งค่าเริ่มต้นสำหรับภาษีและสกุลเงิน**:
+    * สามารถกำหนดเป็นค่าเริ่มต้นใน Constructor ของ `ระบบPOS` หรือผ่านระบบ Config
+
+129.  **ระบบเชื่อมต่อกับระบบบัญชีภายนอก**:
+    * ฟังก์ชัน `เชื่อมต่อระบบบัญชี` สำหรับการส่งข้อมูลการขาย
+
+130.  **ระบบกำหนดว่าคูปองสามารถใช้ซ้ำได้หรือไม่**:
+    * เพิ่ม `bool สามารถใช้ได้หลายครั้ง` ในคลาส `คูปอง`
+
+131.  **ระบบรายงานยอดขายแยกตามประเภทสินค้า**:
+    * ฟังก์ชัน `รายงานยอดขายตามประเภทสินค้า`
+
+132.  **ระบบแจ้งเตือนเมื่อราคาสินค้าถูกแก้ไข**:
+    * สามารถทำได้โดยการบันทึก Audit Trail เมื่อมีการใช้ฟังก์ชัน `ปรับเปลี่ยนราคาสินค้าในตะกร้า`
+
+133.  **ระบบรองรับการตั้งเวลาเปิด-ปิดร้าน**:
+    * เป็นการตั้งค่าเชิงระบบ หรือใช้ร่วมกับ `ข้อมูลกะ` เพื่อควบคุมการทำรายการนอกเวลา
+
+134.  **ระบบแสดงประวัติการเปลี่ยนแปลงสต็อกของสินค้าแต่ละตัว**:
+    * คล้ายกับข้อ 114 แต่ลงรายละเอียดผู้ทำรายการและเหตุผลเพิ่มเติม
+
+135.  **ระบบเชื่อมต่อกับระบบสมาชิกภายนอก (Loyalty Program)**:
+    * เพิ่ม `string รหัสสมาชิกภายนอก` ในคลาส `ลูกค้า`
+    * ฟังก์ชัน `ซิงค์แต้มกับระบบสมาชิกภายนอก`
+
+136.  **ระบบบันทึกข้อมูลการจัดส่ง (ชื่อ, ที่อยู่, รหัสไปรษณีย์)**:
+    * เพิ่ม `string รหัสไปรษณีย์จัดส่ง`, `string ที่อยู่จัดส่งเต็ม` ในคลาส `ใบเสร็จ`
+
+137.  **ระบบรายงานจำนวนสินค้าที่ขายได้ในแต่ละช่วงเวลา**:
+    * ฟังก์ชัน `รายงานจำนวนสินค้าที่ขายได้`
+
+138.  **ระบบจัดการคืนเงินแบบบางส่วน**:
+    * ฟังก์ชัน `คืนเงินบางส่วน`
+
+139.  **ระบบสรุปยอดรับชำระและยอดคืนเงินในแต่ละกะ**:
+    * เพิ่ม `decimal ยอดรวมรับชำระ`, `decimal ยอดรวมคืนเงิน` ในคลาส `ข้อมูลกะ`
+
+140.  **ระบบจัดการโปรโมชั่นแบบซ้อนทับกันได้ (Stackable Promotions)**:
+    * ต้องใช้ Logic การคำนวณส่วนลดที่ซับซ้อนขึ้น เช่น การกำหนดลำดับการใช้โปรโมชั่น หรือการคำนวณแบบสะสม
+
+141.  **ระบบกำหนดราคาพิเศษสำหรับสินค้าตามช่วงเวลาหรือวัน/เวลา**:
+    * เพิ่มคลาส `ราคาตามช่วงเวลา` และ `List<ราคาตามช่วงเวลา>` ในคลาส `สินค้า`
+    * ฟังก์ชัน `รับราคาปัจจุบันของสินค้า`
+
+142.  **ระบบแจ้งเตือนเมื่อยอดขายต่ำกว่าเป้าหมาย**:
+    * ฟังก์ชัน `ตรวจสอบเป้าหมายยอดขาย`
+
+143.  **ระบบเก็บประวัติการเปิด-ปิดกะ**:
+    * ทำไปแล้วใน `ประวัติกะขาย` ของ `ระบบPOS`
+
+144.  **ระบบบังคับให้ผู้จัดการอนุมัติการปรับเปลี่ยนราคา/ส่วนลด**:
+    * เพิ่ม `bool สามารถปรับเปลี่ยนราคาได้` ในคลาส `พนักงาน`
+    * ฟังก์ชัน `ปรับเปลี่ยนราคาต้องอนุมัติ`
+
+145.  **ระบบสร้างใบเสร็จแบบย่อ/แบบเต็ม**:
+    * สามารถปรับแต่ง `พิมพ์ใบเสร็จ` ให้มีพารามิเตอร์สำหรับเลือกว่าจะพิมพ์แบบย่อหรือแบบเต็ม
+
+146.  **ระบบเชื่อมต่อกับเครื่องชั่งน้ำหนักสินค้า (สำหรับสินค้าที่ขายตามน้ำหนัก)**:
+    * ฟังก์ชัน `อ่านค่าน้ำหนักจากเครื่องชั่ง` (จำลองการเชื่อมต่อ)
+
+147.  **ระบบจัดการค่าธรรมเนียมบัตรเครดิต/ธนาคาร (Transaction Fee)**:
+    * สามารถเพิ่ม `decimal ค่าธรรมเนียมบัตรเครดิต` ในคลาส `ใบเสร็จ` และคำนวณในขั้นตอนการชำระเงิน
+
+148.  **ระบบบันทึกราคาขายสินค้า ณ เวลาที่ทำรายการ (เพื่อการตรวจสอบย้อนหลัง)**:
+    * เพิ่ม `decimal ราคาที่บันทึกขณะเพิ่ม` ในคลาส `รายการสินค้าในตะกร้า`
+
+149.  **ระบบสำรองข้อมูลอัตโนมัติ**:
+    * ฟังก์ชัน `สำรองข้อมูล` (จำลองการสำรอง)
+
+150.  **ระบบรายงานการยกเลิกบิล/คืนสินค้า**:
+    * ฟังก์ชัน `รายงานการยกเลิกและคืนสินค้า`
+
+---
+
+หวังว่าชุดฟีเจอร์เพิ่มเติมนี้จะเป็นประโยชน์สำหรับการพัฒนาระบบ POS ของคุณนะครับ! หากคุณมีข้อสงสัยเพิ่มเติมหรือต้องการรายละเอียดในส่วนใด สามารถสอบถามได้เลยครับ
+```แน่นอนครับ! นี่คืออีก 30 ข้อของ Logic และฟีเจอร์เพิ่มเติมสำหรับระบบ POS พร้อมโครงสร้างโค้ด C# .NET แบบย่อครับ
+
+---
+
+### โครงสร้างคลาสที่ปรับปรุง (เพิ่มเติม/แก้ไขจากเดิม)
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+// การประกาศคลาสพื้นฐานที่มีอยู่แล้ว (เน้นส่วนที่ปรับปรุง/เพิ่มเข้ามา)
+public class สินค้า {
+    public string รหัสสินค้า { get; set; }
+    public string ชื่อสินค้า { get; set; }
+    public decimal ราคาต่อหน่วย { get; set; }
+    public int จำนวนคงเหลือ { get; set; }
+    public string หน่วยนับ { get; set; }
+    public DateTime วันหมดอายุ { get; set; }
+    public decimal ราคาพิเศษสมาชิก { get; set; }
+    public string หมวดหมู่ { get; set; }
+    public decimal อัตราภาษี { get; set; }
+    public bool เป็นสินค้าบริการ { get; set; }
+    public decimal ต้นทุนสินค้า { get; set; }
+    public string สถานะสินค้า { get; set; }
+    public int จุดสั่งซื้อ { get; set; }
+    public string รูปภาพสินค้า { get; set; }
+    public List<string> แท็กสินค้า { get; set; }
+    public List<ข้อมูลตัวเลือกสินค้า> ตัวเลือกสินค้า { get; set; }
+    public bool ต้องคิดภาษี { get; set; }
+    public string บาร์โค้ด { get; set; }
+    public int จำนวนขั้นต่ำในการขาย { get; set; }
+    public string คำอธิบายสินค้า { get; set; }
+    public string รหัสหมวดหมู่หลัก { get; set; }
+    public string รหัสหมวดหมู่ย่อย { get; set; }
+    public List<ราคาตามช่วงเวลา> ราคาพิเศษตามช่วงเวลา { get; set; }
+    public string รหัสสินค้าผู้จัดหา { get; set; } // ข้อ 167
+    public string รหัสพื้นที่จัดเก็บ { get; set; } // ข้อ 171
+    public decimal น้ำหนักสินค้า { get; set; } // ข้อ 172
+    public decimal ขนาดกว้าง { get; set; } // ข้อ 173
+    public decimal ขนาดยาว { get; set; } // ข้อ 173
+    public decimal ขนาดสูง { get; set; } // ข้อ 173
+    public bool ขายส่ง { get; set; } // ข้อ 174
+    public decimal ราคาขายส่ง { get; set; } // ข้อ 174
+}
+
+public class ข้อมูลตัวเลือกสินค้า {
+    public string ชื่อตัวเลือก { get; set; }
+    public List<string> ค่าตัวเลือก { get; set; }
+    public Dictionary<string, decimal> ราคาเพิ่มลดตามตัวเลือก { get; set; }
+    public Dictionary<string, int> สต็อกตามตัวเลือก { get; set; }
+}
+
+public class ราคาตามช่วงเวลา
+{
+    public decimal ราคา { get; set; }
+    public DateTime วันที่เริ่มต้น { get; set; }
+    public DateTime วันที่สิ้นสุด { get; set; }
+    public string วันที่ใช้ได้ { get; set; }
+    public TimeSpan เวลาเริ่มต้น { get; set; }
+    public TimeSpan เวลาสิ้นสุด { get; set; }
+}
+
+public class รายการสินค้าในตะกร้า {
+    public สินค้า สินค้า { get; set; }
+    public int จำนวน { get; set; }
+    public decimal ราคารวมรายการ { get; set; }
+    public decimal ส่วนลดรายการ { get; set; }
+    public string รหัสส่วนลดที่ใช้ { get; set; }
+    public List<string> ตัวเลือกที่เลือก { get; set; }
+    public decimal ราคาที่บันทึกขณะเพิ่ม { get; set; }
+    public decimal ราคาที่ปรับแล้ว { get; set; } // ข้อ 180 (หลังส่วนลดตามรายการ)
+}
+
+public class ใบเสร็จ {
+    public string เลขที่บิล { get; set; }
+    public DateTime วันที่เวลาขาย { get; set; }
+    public List<รายการสินค้าในตะกร้า> รายการสินค้า { get; set; }
+    public decimal ยอดรวมก่อนหักส่วนลด { get; set; }
+    public decimal ส่วนลดรวม { get; set; }
+    public decimal ยอดรวมหลังหักส่วนลด { get; set; }
+    public decimal ภาษีมูลค่าเพิ่ม { get; set; }
+    public decimal ยอดสุทธิที่ต้องชำระ { get; set; }
+    public string ช่องทางการชำระเงิน { get; set; }
+    public decimal ยอดเงินที่รับมา { get; set; }
+    public decimal เงินทอน { get; set; }
+    public ลูกค้า ข้อมูลลูกค้า { get; set; }
+    public พนักงาน ข้อมูลพนักงานขาย { get; set; }
+    public string สถานะบิล { get; set; }
+    public string หมายเหตุ { get; set; }
+    public decimal ค่าจัดส่ง { get; set; }
+    public string รหัสกะที่ขาย { get; set; }
+    public string หมายเลขเครื่อง POS { get; set; }
+    public string หมายเลขลูกค้าอ้างอิง { get; set; }
+    public decimal คะแนนสะสมที่ใช้ { get; set; }
+    public string วิธีการจัดส่ง { get; set; }
+    public DateTime? กำหนดส่งมอบ { get; set; }
+    public string หมายเหตุการยกเลิก { get; set; }
+    public Dictionary<string, decimal> การชำระเงินแยกส่วน { get; set; }
+    public string เลขที่อ้างอิงการทำรายการ { get; set; }
+    public string รหัสโปรโมชั่นที่ใช้ { get; set; }
+    public string รหัสอ้างอิงการรับชำระ { get; set; }
+    public string สถานะการจัดส่ง { get; set; }
+    public string รหัสไปรษณีย์จัดส่ง { get; set; }
+    public string ที่อยู่จัดส่งเต็ม { get; set; }
+    public string รหัสผู้ดูแลที่อนุมัติ { get; set; }
+    public decimal ค่าธรรมเนียมบัตรเครดิต { get; set; }
+    public string ประเภทบิล { get; set; } // ข้อ 151 เช่น "ขายปกติ", "คืนสินค้า", "ยกเลิก"
+    public string เลขที่บิลอ้างอิง (สำหรับคืน/ยกเลิก) { get; set; } // ข้อ 151
+    public string รหัสโปรโมชั่นที่ใช้ในบิล { get; set; } // ข้อ 156
+    public string รหัสคูปองที่ใช้ในบิล { get; set; } // ข้อ 157
+    public string สาขาที่ทำรายการ { get; set; } // ข้อ 161
+}
+
+public class ลูกค้า {
+    public string รหัสลูกค้า { get; set; }
+    public string ชื่อลูกค้า { get; set; }
+    public int แต้มสะสม { get; set; }
+    public List<ใบเสร็จ> ประวัติการซื้อ { get; set; }
+    public decimal วงเงินเครดิตคงเหลือ { get; set; }
+    public string เบอร์โทรศัพท์ { get; set; }
+    public string อีเมล { get; set; }
+    public string ที่อยู่ { get; set; }
+    public DateTime วันเกิด { get; set; }
+    public string ประเภทลูกค้า { get; set; }
+    public string รหัสสมาชิกภายนอก { get; set; }
+    public DateTime วันที่สมัครสมาชิก { get; set; } // ข้อ 162
+    public bool สถานะการเป็นสมาชิก { get; set; } // ข้อ 162
+}
+
+public class พนักงาน {
+    public string รหัสพนักงาน { get; set; }
+    public string ชื่อพนักงาน { get; set; }
+    public string รหัสผ่าน { get; set; }
+    public string สิทธิ์การใช้งาน { get; set; }
+    public string แผนก { get; set; }
+    public bool สามารถปรับเปลี่ยนราคาได้ { get; set; }
+    public DateTime วันที่เข้าทำงาน { get; set; } // ข้อ 163
+}
+
+public class โปรโมชั่น {
+    public string รหัสโปรโมชั่น { get; set; }
+    public string ชื่อโปรโมชั่น { get; set; }
+    public string ประเภทโปรโมชั่น { get; set; }
+    public Func<List<รายการสินค้าในตะกร้า>, List<รายการสินค้าในตะกร้า>> คำนวณส่วนลดโปรโมชั่น { get; set; }
+    public DateTime วันที่เริ่มต้น { get; set; }
+    public DateTime วันที่สิ้นสุด { get; set; }
+    public decimal ยอดซื้อขั้นต่ำ { get; set; }
+    public List<string> สินค้าที่ร่วมรายการ { get; set; }
+    public List<string> สินค้าที่ไม่ร่วมรายการ { get; set; }
+    public int จำนวนครั้งที่ใช้ได้ { get; set; }
+    public int จำนวนครั้งที่ใช้ไปแล้ว { get; set; }
+    public List<string> สาขาที่ร่วมรายการ { get; set; }
+    public bool ใช้ได้กับราคาปกติเท่านั้น { get; set; } // ข้อ 175
+}
+
+public class คูปอง {
+    public string รหัสคูปอง { get; set; }
+    public decimal มูลค่าส่วนลด { get; set; }
+    public DateTime วันหมดอายุ { get; set; }
+    public bool ใช้งานแล้ว { get; set; }
+    public int จำนวนครั้งที่ใช้ได้ { get; set; }
+    public int จำนวนครั้งที่ใช้งานไปแล้ว { get; set; }
+    public string ประเภทคูปอง { get; set; }
+    public decimal เงื่อนไขยอดซื้อขั้นต่ำ { get; set; }
+    public bool สามารถใช้ได้หลายครั้ง { get; set; }
+    public List<string> สินค้าที่ร่วมรายการ { get; set; } // ข้อ 176
+}
+
+public class ข้อมูลกะ
+{
+    public string รหัสกะ { get; set; }
+    public DateTime เวลาเปิดกะ { get; set; }
+    public DateTime? เวลาปิดกะ { get; set; }
+    public พนักงาน พนักงานเปิดกะ { get; set; }
+    public พนักงาน พนักงานปิดกะ { get; set; }
+    public decimal ยอดขายเงินสด { get; set; }
+    public decimal ยอดขายบัตรเครดิต { get; set; }
+    public decimal ยอดรวมในกะ { get; set; }
+    public decimal เงินสดเริ่มต้นกะ { get; set; }
+    public decimal เงินสดปิดกะ { get; set; }
+    public decimal เงินเบิกจ่ายในกะ { get; set; }
+    public List<ใบเสร็จ> บิลที่ขายในกะ { get; set; }
+    public decimal ยอดรวมรับชำระ { get; set; }
+    public decimal ยอดรวมคืนเงิน { get; set; }
+    public int จำนวนบิลที่ออก { get; set; } // ข้อ 164
+    public int จำนวนบิลที่ยกเลิก { get; set; } // ข้อ 164
+}
+
+public class ข้อมูลผู้จัดหา {
+    public string รหัสผู้จัดหา { get; set; }
+    public string ชื่อผู้จัดหา { get; set; }
+    public string เบอร์โทรศัพท์ { get; set; }
+    public string ที่อยู่ { get; set; }
+}
+
+public class รายการรับสินค้า {
+    public string เลขที่รับสินค้า { get; set; }
+    public DateTime วันที่รับ { get; set; }
+    public ข้อมูลผู้จัดหา ผู้จัดหา { get; set; }
+    public List<สินค้า> รายการสินค้าที่รับ { get; set; }
+    public พนักงาน ผู้รับสินค้า { get; set; }
+    public string หมายเหตุ { get; set; }
+    public string สถานะการรับสินค้า { get; set; } // ข้อ 168
+}
+
+public class ใบเสนอราคา {
+    public string เลขที่ใบเสนอราคา { get; set; }
+    public DateTime วันที่สร้าง { get; set; }
+    public ลูกค้า ข้อมูลลูกค้า { get; set; }
+    public List<รายการสินค้าในตะกร้า> รายการสินค้า { get; set; }
+    public decimal ยอดรวมสุทธิ { get; set; }
+    public DateTime วันหมดอายุใบเสนอราคา { get; set; }
+    public string สถานะ { get; set; }
+    public string รหัสพนักงานที่สร้าง { get; set; }
+}
+
+public class รายการคืนสินค้า // ข้อ 152
+{
+    public string เลขที่คืนสินค้า { get; set; }
+    public string เลขที่บิลต้นฉบับ { get; set; }
+    public DateTime วันที่คืน { get; set; }
+    public ลูกค้า ลูกค้าผู้คืน { get; set; }
+    public List<รายการสินค้าในตะกร้า> รายการสินค้าที่คืน { get; set; } // สินค้าและจำนวนที่คืน
+    public decimal จำนวนเงินที่คืน { get; set; }
+    public พนักงาน พนักงานผู้ทำรายการ { get; set; }
+    public string เหตุผลการคืน { get; set; }
+    public bool คืนเข้าสต็อก { get; set; } // ข้อ 153
+}
+
+public class พื้นที่จัดเก็บสินค้า // ข้อ 171
+{
+    public string รหัสพื้นที่ { get; set; }
+    public string ชื่อพื้นที่ { get; set; }
+    public string รายละเอียด { get; set; }
+}
+
+public class ระบบPOS
+{
+    private List<สินค้า> คลังสินค้า;
+    private List<รายการสินค้าในตะกร้า> ตะกร้าสินค้า;
+    private List<ใบเสร็จ> ประวัติการขาย;
+    private List<ลูกค้า> ฐานข้อมูลลูกค้า;
+    private List<พนักงาน> ฐานข้อมูลพนักงาน;
+    private List<โปรโมชั่น> รายการโปรโมชั่น;
+    private List<คูปอง> รายการคูปอง;
+    private List<ข้อมูลกะ> ประวัติกะขาย;
+    private List<ข้อมูลผู้จัดหา> ฐานข้อมูลผู้จัดหา;
+    private List<รายการรับสินค้า> ประวัติการรับสินค้า;
+    private List<ใบเสนอราคา> รายการใบเสนอราคา;
+    private List<string> หมวดหมู่สินค้าทั้งหมด;
+    private List<รายการคืนสินค้า> ประวัติการคืนสินค้า; // ข้อ 152
+    private List<พื้นที่จัดเก็บสินค้า> พื้นที่จัดเก็บสินค้าทั้งหมด; // ข้อ 171
+
+    private พนักงาน พนักงานที่เข้าสู่ระบบปัจจุบัน;
+    private string คลังสินค้าปัจจุบัน;
+    private ข้อมูลกะ กะปัจจุบัน;
+
+    public ระบบPOS()
+    {
+        คลังสินค้า = new List<สินค้า>();
+        ตะกร้าสินค้า = new List<รายการสินค้าในตะกร้า>();
+        ประวัติการขาย = new List<ใบเสร็จ>();
+        ฐานข้อมูลลูกค้า = new List<ลูกค้า>();
+        ฐานข้อมูลพนักงาน = new List<พนักงาน>();
+        รายการโปรโมชั่น = new List<โปรโมชั่น>();
+        รายการคูปอง = new List<คูปอง>();
+        ประวัติกะขาย = new List<ข้อมูลกะ>();
+        ฐานข้อมูลผู้จัดหา = new List<ข้อมูลผู้จัดหา>();
+        ประวัติการรับสินค้า = new List<รายการรับสินค้า>();
+        รายการใบเสนอราคา = new List<ใบเสนอราคา>();
+        หมวดหมู่สินค้าทั้งหมด = new List<string>();
+        ประวัติการคืนสินค้า = new List<รายการคืนสินค้า>();
+        พื้นที่จัดเก็บสินค้าทั้งหมด = new List<พื้นที่จัดเก็บสินค้า>();
+
+        คลังสินค้าปัจจุบัน = "คลังหลัก";
+
+        // ตัวอย่างข้อมูลเริ่มต้น
+        ฐานข้อมูลพนักงาน.Add(new พนักงาน { รหัสพนักงาน = "EMP001", ชื่อพนักงาน = "แอดมิน", รหัสผ่าน = "admin123", สิทธิ์การใช้งาน = "Admin", สามารถปรับเปลี่ยนราคาได้ = true });
+        ฐานข้อมูลพนักงาน.Add(new พนักงาน { รหัสพนักงาน = "EMP002", ชื่อพนักงาน = "แคชเชียร์", รหัสผ่าน = "cashier123", สิทธิ์การใช้งาน = "Cashier", สามารถปรับเปลี่ยนราคาได้ = false });
+        หมวดหมู่สินค้าทั้งหมด.Add("อาหาร");
+        หมวดหมู่สินค้าทั้งหมด.Add("เครื่องดื่ม");
+        พื้นที่จัดเก็บสินค้าทั้งหมด.Add(new พื้นที่จัดเก็บสินค้า { รหัสพื้นที่ = "A1", ชื่อพื้นที่ = "ชั้นวาง A1", รายละเอียด = "สินค้าทั่วไป" });
+    }
+
+    // --- 151. ระบบจัดการการคืนสินค้า และออกบิลคืนสินค้า
+    // เพิ่ม `ประเภทบิล`, `เลขที่บิลอ้างอิง` ใน `ใบเสร็จ`
+    // เพิ่ม `รายการคืนสินค้า` ใน `ระบบPOS`
+    public ใบเสร็จ คืนสินค้า(string เลขที่บิลต้นฉบับ, List<Tuple<string, int>> รายการสินค้าที่คืน, string เหตุผลการคืน, bool คืนเข้าสต็อก)
+    {
+        var บิลต้นฉบับ = ประวัติการขาย.FirstOrDefault(b => b.เลขที่บิล == เลขที่บิลต้นฉบับ);
+        if (บิลต้นฉบับ == null)
+        {
+            Console.WriteLine("ไม่พบบิลต้นฉบับ");
+            return null;
+        }
+
+        List<รายการสินค้าในตะกร้า> รายการคืน = new List<รายการสินค้าในตะกร้า>();
+        decimal ยอดเงินที่ต้องคืน = 0;
+
+        foreach (var item in รายการสินค้าที่คืน)
+        {
+            var รหัสสินค้า = item.Item1;
+            var จำนวนที่คืน = item.Item2;
+            var รายการในบิลต้นฉบับ = บิลต้นฉบับ.รายการสินค้า.FirstOrDefault(ri => ri.สินค้า.รหัสสินค้า == รหัสสินค้า);
+
+            if (รายการในบิลต้นฉบับ != null && รายการในบิลต้นฉบับ.จำนวน >= จำนวนที่คืน)
+            {
+                รายการคืน.Add(new รายการสินค้าในตะกร้า
+                {
+                    สินค้า = รายการในบิลต้นฉบับ.สินค้า,
+                    จำนวน = จำนวนที่คืน,
+                    ราคารวมรายการ = รายการในบิลต้นฉบับ.สินค้า.ราคาต่อหน่วย * จำนวนที่คืน,
+                    ราคาที่บันทึกขณะเพิ่ม = รายการในบิลต้นฉบับ.ราคาที่บันทึกขณะเพิ่ม // ข้อ 148
+                });
+                ยอดเงินที่ต้องคืน += รายการในบิลต้นฉบับ.สินค้า.ราคาต่อหน่วย * จำนวนที่คืน;
+
+                // ลดจำนวนสินค้าในบิลต้นฉบับหากมีการคืนบางส่วน
+                รายการในบิลต้นฉบับ.จำนวน -= จำนวนที่คืน;
+                if (รายการในบิลต้นฉบับ.จำนวน == 0)
+                {
+                    บิลต้นฉบับ.รายการสินค้า.Remove(รายการในบิลต้นฉบับ);
+                }
+
+                if (คืนเข้าสต็อก)
+                {
+                    var สินค้าในคลัง = คลังสินค้า.FirstOrDefault(s => s.รหัสสินค้า == รหัสสินค้า);
+                    if (สินค้าในคลัง != null)
+                    {
+                        สินค้าในคลัง.จำนวนคงเหลือ += จำนวนที่คืน;
+                        Console.WriteLine($"คืนสินค้า {สินค้าในคลัง.ชื่อสินค้า} จำนวน {จำนวนที่คืน} ชิ้น เข้าสต็อก");
+                    }
+                }
+            }
+            else
+            {
+                Console.WriteLine($"ไม่สามารถคืนสินค้า {รหัสสินค้า} จำนวน {จำนวนที่คืน} ชิ้นได้ (อาจเกินจำนวนที่ซื้อ หรือไม่พบสินค้า)");
+            }
+        }
+
+        if (!รายการคืน.Any())
+        {
+            Console.WriteLine("ไม่มีรายการสินค้าที่สามารถคืนได้");
+            return null;
+        }
+
+        var บิลคืนใหม่ = new ใบเสร็จ
+        {
+            เลขที่บิล = $"RTN-{Guid.NewGuid().ToString().Substring(0, 8)}",
+            วันที่เวลาขาย = DateTime.Now,
+            รายการสินค้า = รายการคืน,
+            ยอดรวมก่อนหักส่วนลด = ยอดเงินที่ต้องคืน,
+            ส่วนลดรวม = 0,
+            ยอดรวมหลังหักส่วนลด = ยอดเงินที่ต้องคืน,
+            ภาษีมูลค่าเพิ่ม = 0, // ควรคำนวณตามประเภทสินค้าที่คืน
+            ยอดสุทธิที่ต้องชำระ = -ยอดเงินที่ต้องคืน, // ยอดติดลบแสดงการคืน
+            ช่องทางการชำระเงิน = "คืนเงิน",
+            ยอดเงินที่รับมา = 0,
+            เงินทอน = 0,
+            ข้อมูลลูกค้า = บิลต้นฉบับ.ข้อมูลลูกค้า,
+            ข้อมูลพนักงานขาย = พนักงานที่เข้าสู่ระบบปัจจุบัน,
+            สถานะบิล = "คืนสินค้า",
+            เลขที่บิลอ้างอิง = เลขที่บิลต้นฉบับ,
+            หมายเหตุ = เหตุผลการคืน,
+            รหัสกะที่ขาย = กะปัจจุบัน?.รหัสกะ
+        };
+        ประวัติการขาย.Add(บิลคืนใหม่);
+        ประวัติการคืนสินค้า.Add(new รายการคืนสินค้า // เก็บรายละเอียดการคืนใน List แยก
+        {
+            เลขที่คืนสินค้า = บิลคืนใหม่.เลขที่บิล,
+            เลขที่บิลต้นฉบับ = เลขที่บิลต้นฉบับ,
+            วันที่คืน = DateTime.Now,
+            ลูกค้าผู้คืน = บิลต้นฉบับ.ข้อมูลลูกค้า,
+            รายการสินค้าที่คืน = รายการคืน,
+            จำนวนเงินที่คืน = ยอดเงินที่ต้องคืน,
+            พนักงานผู้ทำรายการ = พนักงานที่เข้าสู่ระบบปัจจุบัน,
+            เหตุผลการคืน = เหตุผลการคืน,
+            คืนเข้าสต็อก = คืนเข้าสต็อก
+        });
+
+        กะปัจจุบัน?.บิลที่ขายในกะ.Add(บิลคืนใหม่);
+        Console.WriteLine($"ทำรายการคืนสินค้าสำเร็จ เลขที่บิลคืน: {บิลคืนใหม่.เลขที่บิล} ยอดเงินคืน: {ยอดเงินที่ต้องคืน:N2}");
+        return บิลคืนใหม่;
+    }
+
+    // --- 152. ระบบบันทึกประวัติการคืนสินค้าโดยละเอียด (แยกจากบิลขาย)
+    // เพิ่มคลาส `รายการคืนสินค้า` และ `List<รายการคืนสินค้า>` ใน `ระบบPOS`
+
+    // --- 153. ระบบกำหนดว่าจะคืนสินค้าเข้าสต็อกหรือไม่
+    // เพิ่ม `bool คืนเข้าสต็อก` ในคลาส `รายการคืนสินค้า` และในฟังก์ชัน `คืนสินค้า`
+
+    // --- 154. ระบบแสดงประวัติการซื้อของลูกค้า ณ จุดขาย
+    public List<ใบเสร็จ> แสดงประวัติการซื้อลูกค้า(ลูกค้า ลูกค้า)
+    {
+        return ลูกค้า?.ประวัติการซื้อ ?? new List<ใบเสร็จ>();
+    }
+
+    // --- 155. ระบบสามารถระงับการทำรายการชั่วคราว (Hold Sale) และเรียกกลับมาทำต่อได้
+    private ใบเสร็จ บิลที่ระงับอยู่;
+    public void ระงับการทำรายการ()
+    {
+        if (ตะกร้าสินค้า.Any())
+        {
+            บิลที่ระงับอยู่ = new ใบเสร็จ
+            {
+                รายการสินค้า = new List<รายการสินค้าในตะกร้า>(ตะกร้าสินค้า),
+                วันที่เวลาขาย = DateTime.Now,
+                สถานะบิล = "ระงับ"
+            };
+            ตะกร้าสินค้า.Clear();
+            Console.WriteLine("ระงับการทำรายการปัจจุบันแล้ว สามารถเรียกกลับมาทำต่อได้ในภายหลัง");
+        }
+        else
+        {
+            Console.WriteLine("ไม่มีรายการในตะกร้าที่จะระงับ");
+        }
+    }
+
+    public void เรียกรายการที่ระงับกลับมา()
+    {
+        if (บิลที่ระงับอยู่ != null)
+        {
+            ตะกร้าสินค้า = new List<รายการสินค้าในตะกร้า>(บิลที่ระงับอยู่.รายการสินค้า);
+            บิลที่ระงับอยู่ = null;
+            Console.WriteLine("เรียกรายการที่ระงับกลับมาแล้ว");
+            แสดงตะกร้าสินค้า();
+        }
+        else
+        {
+            Console.WriteLine("ไม่มีรายการที่ถูกระงับ");
+        }
+    }
+
+    // --- 156. ระบบบันทึกโปรโมชั่นที่ถูกใช้ในบิลขาย (ในกรณีที่มีหลายโปรโมชั่น)
+    // เพิ่ม `string รหัสโปรโมชั่นที่ใช้ในบิล` ในคลาส `ใบเสร็จ` (อาจเป็น List<string> หากใช้หลายตัว)
+
+    // --- 157. ระบบบันทึกคูปองที่ถูกใช้ในบิลขาย (ในกรณีที่มีหลายคูปอง)
+    // เพิ่ม `string รหัสคูปองที่ใช้ในบิล` ในคลาส `ใบเสร็จ` (อาจเป็น List<string> หากใช้หลายตัว)
+
+    // --- 158. ระบบจัดการภาษีแยกตามเขตพื้นที่ (Tax Zone)
+    // ต้องมีโครงสร้างข้อมูลสำหรับ Tax Zone และ Logic การคำนวณภาษีตามที่อยู่ลูกค้า/สาขา
+
+    // --- 159. ระบบเชื่อมต่อกับเครื่องรูดบัตรเครดิต
+    public bool เชื่อมต่อเครื่องรูดบัตร()
+    {
+        Console.WriteLine("กำลังเชื่อมต่อกับเครื่องรูดบัตร...");
+        // Logic เพื่อเชื่อมต่อ API/SDK ของเครื่องรูดบัตร
+        bool เชื่อมต่อสำเร็จ = true; // สมมติว่าสำเร็จ
+        if (!เชื่อมต่อสำเร็จ) Console.WriteLine("ไม่สามารถเชื่อมต่อเครื่องรูดบัตรได้");
+        return เชื่อมต่อสำเร็จ;
+    }
+
+    // --- 160. ระบบพิมพ์ใบเสร็จซ้ำ
+    public void พิมพ์ใบเสร็จซ้ำ(string เลขที่บิล)
+    {
+        var บิล = ประวัติการขาย.FirstOrDefault(b => b.เลขที่บิล == เลขที่บิล);
+        if (บิล != null)
+        {
+            Console.WriteLine($"\n--- พิมพ์ใบเสร็จซ้ำ (เลขที่บิล: {บิล.เลขที่บิล}) ---");
+            พิมพ์ใบเสร็จ(บิล); // ฟังก์ชันพิมพ์ใบเสร็จเดิม
+            Console.WriteLine("----------------------------------\n");
+        }
+        else
+        {
+            Console.WriteLine("ไม่พบบิลที่ต้องการพิมพ์ซ้ำ");
+        }
+    }
+
+    // --- 161. ระบบระบุสาขาที่ทำรายการ
+    // เพิ่ม `string สาขาที่ทำรายการ` ในคลาส `ใบเสร็จ` (และอาจจะ `ระบบPOS` มี `ชื่อสาขาปัจจุบัน`)
+
+    // --- 162. ระบบจัดการข้อมูลสมาชิก (วันที่สมัคร, สถานะ)
+    // เพิ่ม `DateTime วันที่สมัครสมาชิก`, `bool สถานะการเป็นสมาชิก` ในคลาส `ลูกค้า`
+
+    // --- 163. ระบบจัดการข้อมูลพนักงาน (วันที่เริ่มทำงาน)
+    // เพิ่ม `DateTime วันที่เข้าทำงาน` ในคลาส `พนักงาน`
+
+    // --- 164. ระบบสรุปจำนวนบิลที่ออกและบิลที่ยกเลิกในแต่ละกะ
+    // เพิ่ม `int จำนวนบิลที่ออก`, `int จำนวนบิลที่ยกเลิก` ในคลาส `ข้อมูลกะ`
+
+    // --- 165. ระบบรายงานยอดขายตามพนักงาน
+    public Dictionary<string, decimal> รายงานยอดขายตามพนักงาน(DateTime วันที่เริ่มต้น, DateTime วันที่สิ้นสุด)
+    {
+        return ประวัติการขาย
+            .Where(บิล => บิล.วันที่เวลาขาย >= วันที่เริ่มต้น && บิล.วันที่เวลาขาย <= วันที่สิ้นสุด && บิล.ข้อมูลพนักงานขาย != null)
+            .GroupBy(บิล => บิล.ข้อมูลพนักงานขาย.ชื่อพนักงาน)
+            .ToDictionary(g => g.Key, g => g.Sum(b => b.ยอดสุทธิที่ต้องชำระ));
+    }
+
+    // --- 166. ระบบบันทึกการ Login/Logout ของพนักงาน
+    public void บันทึกการเข้าออกระบบ(พนักงาน พนักงาน, string สถานะ)
+    {
+        Console.WriteLine($"พนักงาน {พนักงาน.ชื่อพนักงาน} {สถานะ} ระบบ ณ เวลา {DateTime.Now}");
+        // บันทึกข้อมูลลงฐานข้อมูล Log
+    }
+
+    // --- 167. บันทึกรหัสสินค้าผู้จัดหา
+    // เพิ่ม `string รหัสสินค้าผู้จัดหา` ในคลาส `สินค้า`
+
+    // --- 168. ระบบจัดการสถานะการรับสินค้า (เช่น รอดำเนินการ, รับแล้วบางส่วน, รับครบแล้ว)
+    // เพิ่ม `string สถานะการรับสินค้า` ในคลาส `รายการรับสินค้า`
+
+    // --- 169. ระบบแจ้งเตือนเมื่อสต็อกไม่ตรงกับระบบ (Stock Discrepancy)
+    public void ตรวจสอบความผิดปกติสต็อก()
+    {
+        Console.WriteLine("กำลังตรวจสอบความผิดปกติของสต็อก (ต้องใช้ข้อมูลจาก Physical Inventory)...");
+        // Logic เปรียบเทียบสต็อกจริงกับสต็อกในระบบ
+    }
+
+    // --- 170. ระบบรองรับการเพิ่มส่วนลดทั้งบิลแบบแมนนวล (ต้องมีการอนุมัติ)
+    public void เพิ่มส่วนลดทั้งบิลด้วยการอนุมัติ(decimal จำนวนส่วนลด, bool เป็นเปอร์เซ็นต์, พนักงาน พนักงานผู้อนุมัติ)
+    {
+        if (ตรวจสอบสิทธิ์(พนักงานผู้อนุมัติ, "อนุมัติส่วนลดทั้งบิล"))
+        {
+            // Logic การใช้ส่วนลดทั้งบิล (คล้ายข้อ 51)
+            Console.WriteLine($"เพิ่มส่วนลดทั้งบิลแล้ว {จำนวนส่วนลด} {(เป็นเปอร์เซ็นต์ ? "%" : "บาท")} โดย {พนักงานผู้อนุมัติ.ชื่อพนักงาน}");
+        }
+        else
+        {
+            Console.WriteLine("ไม่ได้รับอนุญาตให้เพิ่มส่วนลดทั้งบิล");
+        }
+    }
+
+    // --- 171. ระบบจัดการพื้นที่จัดเก็บสินค้า (Warehouse Location)
+    // เพิ่มคลาส `พื้นที่จัดเก็บสินค้า` และ `List<พื้นที่จัดเก็บสินค้า>` ใน `ระบบPOS`
+    // เพิ่ม `string รหัสพื้นที่จัดเก็บ` ในคลาส `สินค้า`
+
+    // --- 172. บันทึกน้ำหนักสินค้า
+    // เพิ่ม `decimal น้ำหนักสินค้า` ในคลาส `สินค้า`
+
+    // --- 173. บันทึกขนาดสินค้า (กว้าง, ยาว, สูง)
+    // เพิ่ม `decimal ขนาดกว้าง`, `decimal ขนาดยาว`, `decimal ขนาดสูง` ในคลาส `สินค้า`
+
+    // --- 174. รองรับราคาขายส่ง/ราคาพิเศษสำหรับลูกค้าบางกลุ่ม
+    // เพิ่ม `bool ขายส่ง`, `decimal ราคาขายส่ง` ในคลาส `สินค้า` (หรือสามารถใช้ `ราคาพิเศษสมาชิก` ร่วมกับ `ประเภทลูกค้า`)
+
+    // --- 175. กำหนดว่าโปรโมชั่นใช้ได้กับราคาปกติเท่านั้น หรือใช้กับราคาสินค้าที่ลดอยู่แล้วได้
+    // เพิ่ม `bool ใช้ได้กับราคาปกติเท่านั้น` ในคลาส `โปรโมชั่น`
+
+    // --- 176. กำหนดว่าคูปองใช้ได้กับสินค้าใดบ้าง
+    // เพิ่ม `List<string> สินค้าที่ร่วมรายการ` ในคลาส `คูปอง`
+
+    // --- 177. ระบบแจ้งเตือนเมื่อเกิดข้อผิดพลาดในการทำรายการ (เช่น ตัดบัตรเครดิตไม่ผ่าน)
+    public void จัดการข้อผิดพลาดการชำระเงิน(string ข้อความข้อผิดพลาด)
+    {
+        Console.WriteLine($"เกิดข้อผิดพลาดในการชำระเงิน: {ข้อความข้อผิดพลาด}");
+        // Logic สำหรับการแจ้งเตือนพนักงานและลองชำระเงินใหม่
+    }
+
+    // --- 178. ระบบแสดงประวัติการแก้ไขข้อมูลสินค้า
+    // ต้องมีโครงสร้าง Audit Log สำหรับการเปลี่ยนแปลงข้อมูลหลัก
+
+    // --- 179. ระบบจัดการผู้ใช้ (เพิ่ม, แก้ไข, ลบ) สำหรับผู้ดูแลระบบ
+    public void จัดการผู้ใช้(string รหัสพนักงานที่ต้องการจัดการ, พนักงาน ผู้จัดการ, string การกระทำ)
+    {
+        if (ผู้จัดการ.สิทธิ์การใช้งาน == "Admin")
+        {
+            Console.WriteLine($"ผู้ดูแล {ผู้จัดการ.ชื่อพนักงาน} ทำการ {การกระทำ} ผู้ใช้ {รหัสพนักงานที่ต้องการจัดการ}");
+            // Logic เพิ่ม/แก้ไข/ลบพนักงาน
+        }
+        else
+        {
+            Console.WriteLine("ไม่มีสิทธิ์จัดการผู้ใช้");
+        }
+    }
+
+    // --- 180. ระบบแสดงราคาสินค้าที่ปรับแล้ว (หลังหักส่วนลดตามรายการ) ในตะกร้า
+    // เพิ่ม `decimal ราคาที่ปรับแล้ว` ในคลาส `รายการสินค้าในตะกร้า`
+
+    // ฟังก์ชันเพิ่มเติมสำหรับ `ระบบPOS` เพื่อการจัดการที่ครบวงจรขึ้น
+    public void เพิ่มสินค้า(สินค้า สินค้าใหม่)
+    {
+        คลังสินค้า.Add(สินค้าใหม่);
+        Console.WriteLine($"เพิ่มสินค้า {สินค้าใหม่.ชื่อสินค้า} (รหัส: {สินค้าใหม่.รหัสสินค้า}) เข้าสู่ระบบแล้ว");
+    }
+
+    public สินค้า รับข้อมูลสินค้า(string รหัสสินค้า)
+    {
+        return คลังสินค้า.FirstOrDefault(s => s.รหัสสินค้า == รหัสสินค้า);
+    }
+
+    public void แสดงตะกร้าสินค้า()
+    {
+        Console.WriteLine("\n--- รายการในตะกร้า ---");
+        if (!ตะกร้าสินค้า.Any())
+        {
+            Console.WriteLine("ตะกร้าสินค้าว่างเปล่า");
+            return;
+        }
+        foreach (var item in ตะกร้าสินค้า)
+        {
+            Console.WriteLine($"- {item.สินค้า.ชื่อสินค้า} ({item.สินค้า.รหัสสินค้า}) x {item.จำนวน} = {item.ราคารวมรายการ:N2} (ส่วนลด: {item.ส่วนลดรายการ:N2}) [ราคาปรับแล้ว: {item.ราคาที่ปรับแล้ว:N2}]");
+        }
+        Console.WriteLine($"ยอดรวมก่อนหักส่วนลด: {ตะกร้าสินค้า.Sum(x => x.ราคารวมรายการ):N2}");
+        Console.WriteLine($"ส่วนลดรวม: {ตะกร้าสินค้า.Sum(x => x.ส่วนลดรายการ):N2}");
+        Console.WriteLine($"ยอดรวมหลังหักส่วนลด: {ตะกร้าสินค้า.Sum(x => x.ราคารวมรายการ - x.ส่วนลดรายการ):N2}");
+        Console.WriteLine("-----------------------\n");
+    }
+
+    public void ล็อกอิน(string รหัสพนักงาน, string รหัสผ่าน)
+    {
+        var พนักงาน = ฐานข้อมูลพนักงาน.FirstOrDefault(p => p.รหัสพนักงาน == รหัสพนักงาน && p.รหัสผ่าน == รหัสผ่าน);
+        if (พนักงาน != null)
+        {
+            พนักงานที่เข้าสู่ระบบปัจจุบัน = พนักงาน;
+            บันทึกการเข้าออกระบบ(พนักงาน, "Login"); // ข้อ 166
+            Console.WriteLine($"ล็อกอินสำเร็จ: {พนักงาน.ชื่อพนักงาน} (สิทธิ์: {พนักงาน.สิทธิ์การใช้งาน})");
+        }
+        else
+        {
+            Console.WriteLine("รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง");
+        }
+    }
+
+    public ใบเสร็จ ชำระเงิน(string ช่องทางการชำระ, decimal ยอดเงินที่รับมา, ลูกค้า ลูกค้าที่ซื้อ = null, decimal ค่าขนส่ง = 0)
+    {
+        // คำนวณยอดเงินสุทธิ
+        var ยอดรวมก่อนหัก = ตะกร้าสินค้า.Sum(x => x.ราคารวมรายการ);
+        var ส่วนลดทั้งหมด = ตะกร้าสินค้า.Sum(x => x.ส่วนลดรายการ);
+        var ยอดรวมหลังหักส่วนลด = ยอดรวมก่อนหัก - ส่วนลดทั้งหมด;
+        var ภาษี = คำนวณภาษีมูลค่าเพิ่มจากตะกร้า();
+        var ยอดสุทธิที่ต้องชำระ = ยอดรวมหลังหักส่วนลด + ภาษี + ค่าขนส่ง;
+
+        var ใบเสร็จใหม่ = new ใบเสร็จ
+        {
+            เลขที่บิล = Guid.NewGuid().ToString(),
+            วันที่เวลาขาย = DateTime.Now,
+            รายการสินค้า = new List<รายการสินค้าในตะกร้า>(ตะกร้าสินค้า),
+            ยอดรวมก่อนหักส่วนลด = ยอดรวมก่อนหัก,
+            ส่วนลดรวม = ส่วนลดทั้งหมด,
+            ยอดรวมหลังหักส่วนลด = ยอดรวมหลังหักส่วนลด,
+            ภาษีมูลค่าเพิ่ม = ภาษี,
+            ยอดสุทธิที่ต้องชำระ = ยอดสุทธิที่ต้องชำระ,
+            ช่องทางการชำระเงิน = ช่องทางการชำระ,
+            ยอดเงินที่รับมา = ยอดเงินที่รับมา,
+            ข้อมูลลูกค้า = ลูกค้าที่ซื้อ,
+            ข้อมูลพนักงานขาย = พนักงานที่เข้าสู่ระบบปัจจุบัน,
+            ค่าจัดส่ง = ค่าขนส่ง,
+            สถานะบิล = "เสร็จสมบูรณ์",
+            รหัสกะที่ขาย = กะปัจจุบัน?.รหัสกะ,
+            ประเภทบิล = "ขายปกติ", // ข้อ 151
+            สาขาที่ทำรายการ = "สาขาหลัก" // ข้อ 161 (สมมติ)
+        };
+
+        if (ช่องทางการชำระ == "เงินสด")
+        {
+            ใบเสร็จใหม่.เงินทอน = ยอดเงินที่รับมา - ยอดสุทธิที่ต้องชำระ;
+        }
+
+        // อัพเดตสต็อกและแต้มสะสม
+        foreach (var รายการในบิล in ตะกร้าสินค้า)
+        {
+            var สินค้าในคลัง = คลังสินค้า.FirstOrDefault(s => s.รหัสสินค้า == รายการในบิล.สินค้า.รหัสสินค้า);
+            if (สินค้าในคลัง != null)
+            {
+                สินค้าในคลัง.จำนวนคงเหลือ -= รายการในบิล.จำนวน;
+            }
+        }
+
+        if (ลูกค้าที่ซื้อ != null)
+        {
+            ลูกค้าที่ซื้อ.แต้มสะสม += (int)(ยอดสุทธิที่ต้องชำระ / 100);
+            if (ลูกค้าที่ซื้อ.ประวัติการซื้อ == null) ลูกค้าที่ซื้อ.ประวัติการซื้อ = new List<ใบเสร็จ>();
+            ลูกค้าที่ซื้อ.ประวัติการซื้อ.Add(ใบเสร็จใหม่);
+        }
+
+        ประวัติการขาย.Add(ใบเสร็จใหม่);
+        กะปัจจุบัน?.บิลที่ขายในกะ.Add(ใบเสร็จใหม่);
+        กะปัจจุบัน.จำนวนบิลที่ออก++; // ข้อ 164
+        ตะกร้าสินค้า.Clear();
+        Console.WriteLine($"ชำระเงินสำเร็จ! เลขที่บิล: {ใบเสร็จใหม่.เลขที่บิล}");
+        return ใบเสร็จใหม่;
+    }
+
+    public void พิมพ์ใบเสร็จ(ใบเสร็จ บิล)
+    {
+        Console.WriteLine($"\n--- ใบเสร็จรับเงิน (บิลเลขที่: {บิล.เลขที่บิล}) ---");
+        Console.WriteLine($"วันที่/เวลา: {บิล.วันที่เวลาขาย}");
+        Console.WriteLine($"พนักงานขาย: {บิล.ข้อมูลพนักงานขาย?.ชื่อพนักงาน ?? "ไม่ระบุ"}");
+        Console.WriteLine($"ลูกค้า: {บิล.ข้อมูลลูกค้า?.ชื่อลูกค้า ?? "ลูกค้าทั่วไป"}");
+        Console.WriteLine("----------------------------------");
+        foreach (var item in บิล.รายการสินค้า)
+        {
+            Console.WriteLine($"{item.สินค้า.ชื่อสินค้า} ({item.สินค้า.รหัสสินค้า}) x {item.จำนวน} = {item.ราคารวมรายการ:N2}");
+            if (item.ส่วนลดรายการ > 0)
+            {
+                Console.WriteLine($"  (ส่วนลด: {item.ส่วนลดรายการ:N2})");
+            }
+        }
+        Console.WriteLine("----------------------------------");
+        Console.WriteLine($"ยอดรวมก่อนหักส่วนลด: {บิล.ยอดรวมก่อนหักส่วนลด:N2}");
+        Console.WriteLine($"ส่วนลดรวม: {บิล.ส่วนลดรวม:N2}");
+        Console.WriteLine($"ยอดรวมหลังหักส่วนลด: {บิล.ยอดรวมหลังหักส่วนลด:N2}");
+        Console.WriteLine($"ภาษีมูลค่าเพิ่ม: {บิล.ภาษีมูลค่าเพิ่ม:N2}");
+        Console.WriteLine($"ค่าจัดส่ง: {บิล.ค่าจัดส่ง:N2}");
+        Console.WriteLine($"ยอดสุทธิที่ต้องชำระ: {บิล.ยอดสุทธิที่ต้องชำระ:N2}");
+        Console.WriteLine($"ชำระด้วย: {บิล.ช่องทางการชำระเงิน}");
+        Console.WriteLine($"ยอดรับมา: {บิล.ยอดเงินที่รับมา:N2}");
+        Console.WriteLine($"เงินทอน: {บิล.เงินทอน:N2}");
+        if (บิล.ข้อมูลลูกค้า != null)
+        {
+            Console.WriteLine($"แต้มสะสม: {บิล.ข้อมูลลูกค้า.แต้มสะสม}");
+        }
+        Console.WriteLine("----------------------------------\n");
+    }
+
+    public bool ตรวจสอบสิทธิ์(พนักงาน พนักงาน, string การกระทำ)
+    {
+        if (พนักงาน == null) return false;
+        // Logic เพื่อตรวจสอบว่าพนักงานมีสิทธิ์ในการทำ `การกระทำ` หรือไม่
+        if (พนักงาน.สิทธิ์การใช้งาน == "Admin") return true;
+        if (พนักงาน.สิทธิ์การใช้งาน == "Manager" && การกระทำ != "จัดการผู้ใช้งาน") return true;
+        if (พนักงาน.สิทธิ์การใช้งาน == "Cashier" && (การกระทำ == "ทำรายการขาย" || การกระทำ == "ดูประวัติการขาย")) return true;
+
+        Console.WriteLine($"พนักงาน {พนักงาน.ชื่อพนักงาน} ไม่มีสิทธิ์ในการ {การกระทำ}");
+        return false;
+    }
+}
 ```
+
+---
+
+### รายละเอียดฟีเจอร์ใหม่ 30 ข้อ
+
+151.  **ระบบจัดการการคืนสินค้า และออกบิลคืนสินค้า**:
+    * เพิ่ม `string ประเภทบิล` และ `string เลขที่บิลอ้างอิง` ในคลาส `ใบเสร็จ` เพื่อระบุว่าเป็นบิลคืนสินค้าและอ้างอิงบิลต้นฉบับ
+    * ฟังก์ชัน `คืนสินค้า` ที่จัดการการสร้างบิลคืนและปรับปรุงสต็อก (หากเลือก)
+
+152.  **ระบบบันทึกประวัติการคืนสินค้าโดยละเอียด (แยกจากบิลขาย)**:
+    * เพิ่มคลาส `รายการคืนสินค้า` และ `List<รายการคืนสินค้า>` ใน `ระบบPOS` เพื่อเก็บข้อมูลการคืนสินค้าแยกต่างหาก
+
+153.  **ระบบกำหนดว่าจะคืนสินค้าเข้าสต็อกหรือไม่**:
+    * เพิ่ม `bool คืนเข้าสต็อก` ในคลาส `รายการคืนสินค้า` และเป็นพารามิเตอร์ในฟังก์ชัน `คืนสินค้า`
+
+154.  **ระบบแสดงประวัติการซื้อของลูกค้า ณ จุดขาย**:
+    * ฟังก์ชัน `แสดงประวัติการซื้อลูกค้า` ที่ดึงข้อมูล `ประวัติการซื้อ` จากวัตถุ `ลูกค้า`
+
+155.  **ระบบสามารถระงับการทำรายการชั่วคราว (Hold Sale) และเรียกกลับมาทำต่อได้**:
+    * ฟังก์ชัน `ระงับการทำรายการ` เพื่อเก็บสถานะตะกร้าสินค้าปัจจุบัน
+    * ฟังก์ชัน `เรียกรายการที่ระงับกลับมา` เพื่อโหลดรายการกลับเข้าตะกร้า
+
+156.  **ระบบบันทึกโปรโมชั่นที่ถูกใช้ในบิลขาย (ในกรณีที่มีหลายโปรโมชั่น)**:
+    * เพิ่ม `string รหัสโปรโมชั่นที่ใช้ในบิล` ในคลาส `ใบเสร็จ` (อาจจะเป็น `List<string>` หากรองรับหลายโปรโมชั่นในบิลเดียว)
+
+157.  **ระบบบันทึกคูปองที่ถูกใช้ในบิลขาย (ในกรณีที่มีหลายคูปอง)**:
+    * เพิ่ม `string รหัสคูปองที่ใช้ในบิล` ในคลาส `ใบเสร็จ` (อาจจะเป็น `List<string>` หากรองรับหลายคูปองในบิลเดียว)
+
+158.  **ระบบจัดการภาษีแยกตามเขตพื้นที่ (Tax Zone)**:
+    * จำเป็นต้องมีโครงสร้างข้อมูลเพิ่มเติมสำหรับ `TaxZone` (เช่น รหัสเขต, อัตราภาษี) และ Logic ในการคำนวณภาษีตาม `ที่อยู่ลูกค้า` หรือ `สาขาที่ทำรายการ`
+
+159.  **ระบบเชื่อมต่อกับเครื่องรูดบัตรเครดิต**:
+    * ฟังก์ชัน `เชื่อมต่อเครื่องรูดบัตร` (จำลองการเชื่อมต่อ API/SDK)
+
+160.  **ระบบพิมพ์ใบเสร็จซ้ำ**:
+    * ฟังก์ชัน `พิมพ์ใบเสร็จซ้ำ` ที่ดึงข้อมูลจาก `ประวัติการขาย` และใช้ฟังก์ชัน `พิมพ์ใบเสร็จ` เดิม
+
+161.  **ระบบระบุสาขาที่ทำรายการ**:
+    * เพิ่ม `string สาขาที่ทำรายการ` ในคลาส `ใบเสร็จ`
+
+162.  **ระบบจัดการข้อมูลสมาชิก (วันที่สมัคร, สถานะ)**:
+    * เพิ่ม `DateTime วันที่สมัครสมาชิก` และ `bool สถานะการเป็นสมาชิก` ในคลาส `ลูกค้า`
+
+163.  **ระบบจัดการข้อมูลพนักงาน (วันที่เริ่มทำงาน)**:
+    * เพิ่ม `DateTime วันที่เข้าทำงาน` ในคลาส `พนักงาน`
+
+164.  **ระบบสรุปจำนวนบิลที่ออกและบิลที่ยกเลิกในแต่ละกะ**:
+    * เพิ่ม `int จำนวนบิลที่ออก` และ `int จำนวนบิลที่ยกเลิก` ในคลาส `ข้อมูลกะ` และอัพเดตเมื่อเกิดเหตุการณ์
+
+165.  **ระบบรายงานยอดขายตามพนักงาน**:
+    * ฟังก์ชัน `รายงานยอดขายตามพนักงาน` ที่สรุปยอดขายของพนักงานแต่ละคน
+
+166.  **ระบบบันทึกการ Login/Logout ของพนักงาน**:
+    * ฟังก์ชัน `บันทึกการเข้าออกระบบ` สำหรับบันทึกกิจกรรม
+
+167.  **บันทึกรหัสสินค้าผู้จัดหา**:
+    * เพิ่ม `string รหัสสินค้าผู้จัดหา` ในคลาส `สินค้า` เพื่อใช้อ้างอิงถึงรหัสสินค้าในระบบของผู้จัดหา
+
+168.  **ระบบจัดการสถานะการรับสินค้า (เช่น รอดำเนินการ, รับแล้วบางส่วน, รับครบแล้ว)**:
+    * เพิ่ม `string สถานะการรับสินค้า` ในคลาส `รายการรับสินค้า`
+
+169.  **ระบบแจ้งเตือนเมื่อสต็อกไม่ตรงกับระบบ (Stock Discrepancy)**:
+    * ฟังก์ชัน `ตรวจสอบความผิดปกติสต็อก` (ต้องมีการป้อนข้อมูล Physical Inventory เข้ามาเพื่อเปรียบเทียบ)
+
+170.  **ระบบรองรับการเพิ่มส่วนลดทั้งบิลแบบแมนนวล (ต้องมีการอนุมัติ)**:
+    * ฟังก์ชัน `เพิ่มส่วนลดทั้งบิลด้วยการอนุมัติ` ที่ต้องการการยืนยันจากผู้มีสิทธิ์
+
+171.  **ระบบจัดการพื้นที่จัดเก็บสินค้า (Warehouse Location)**:
+    * เพิ่มคลาส `พื้นที่จัดเก็บสินค้า` และ `List<พื้นที่จัดเก็บสินค้า>` ใน `ระบบPOS`
+    * เพิ่ม `string รหัสพื้นที่จัดเก็บ` ในคลาส `สินค้า` เพื่อระบุตำแหน่ง
+
+172.  **บันทึกน้ำหนักสินค้า**:
+    * เพิ่ม `decimal น้ำหนักสินค้า` ในคลาส `สินค้า`
+
+173.  **บันทึกขนาดสินค้า (กว้าง, ยาว, สูง)**:
+    * เพิ่ม `decimal ขนาดกว้าง`, `decimal ขนาดยาว`, `decimal ขนาดสูง` ในคลาส `สินค้า`
+
+174.  **รองรับราคาขายส่ง/ราคาพิเศษสำหรับลูกค้าบางกลุ่ม**:
+    * เพิ่ม `bool ขายส่ง` และ `decimal ราคาขายส่ง` ในคลาส `สินค้า`
+    * (อาจจะมีการตั้งค่าราคาพิเศษตาม `ประเภทลูกค้า` เพิ่มเติม)
+
+175.  **กำหนดว่าโปรโมชั่นใช้ได้กับราคาปกติเท่านั้น หรือใช้กับราคาสินค้าที่ลดอยู่แล้วได้**:
+    * เพิ่ม `bool ใช้ได้กับราคาปกติเท่านั้น` ในคลาส `โปรโมชั่น`
+
+176.  **กำหนดว่าคูปองใช้ได้กับสินค้าใดบ้าง**:
+    * เพิ่ม `List<string> สินค้าที่ร่วมรายการ` ในคลาส `คูปอง`
+
+177.  **ระบบแจ้งเตือนเมื่อเกิดข้อผิดพลาดในการทำรายการ (เช่น ตัดบัตรเครดิตไม่ผ่าน)**:
+    * ฟังก์ชัน `จัดการข้อผิดพลาดการชำระเงิน` สำหรับการแจ้งเตือนและการจัดการข้อผิดพลาด
+
+178.  **ระบบแสดงประวัติการแก้ไขข้อมูลสินค้า**:
+    * จำเป็นต้องมีระบบ Audit Log เพื่อบันทึกการเปลี่ยนแปลงข้อมูลหลักของสินค้า
+
+179.  **ระบบจัดการผู้ใช้ (เพิ่ม, แก้ไข, ลบ) สำหรับผู้ดูแลระบบ**:
+    * ฟังก์ชัน `จัดการผู้ใช้` ที่อนุญาตให้ผู้ดูแลระบบ (Admin) ทำการบริหารจัดการข้อมูลพนักงานได้
+
+180.  **ระบบแสดงราคาสินค้าที่ปรับแล้ว (หลังหักส่วนลดตามรายการ) ในตะกร้า**:
+    * เพิ่ม `decimal ราคาที่ปรับแล้ว` ในคลาส `รายการสินค้าในตะกร้า` และแสดงผลใน `แสดงตะกร้าสินค้า`
+
+---
+
+หวังว่าชุดฟีเจอร์นี้จะเป็นประโยชน์ในการพัฒนาระบบ POS ของคุณนะครับ! หากมีส่วนไหนที่ต้องการรายละเอียดเพิ่มเติมหรือต้องการต่อยอด สามารถแจ้งได้เลยครับ
+
+แน่นอนครับ! นี่คืออีก 30 ข้อของ Logic และฟีเจอร์เพิ่มเติมสำหรับระบบ POS พร้อมโครงสร้างโค้ด C# .NET ที่มีการปรับปรุงและเพิ่มเข้ามาครับ
+
+---
+
+### โครงสร้างคลาสที่ปรับปรุง (เพิ่มเติม/แก้ไขจากเดิม)
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+// การประกาศคลาสพื้นฐานที่มีอยู่แล้ว (เน้นส่วนที่ปรับปรุง/เพิ่มเข้ามา)
+public class สินค้า {
+    public string รหัสสินค้า { get; set; }
+    public string ชื่อสินค้า { get; set; }
+    public decimal ราคาต่อหน่วย { get; set; }
+    public int จำนวนคงเหลือ { get; set; }
+    public string หน่วยนับ { get; set; }
+    public DateTime วันหมดอายุ { get; set; }
+    public decimal ราคาพิเศษสมาชิก { get; set; }
+    public string หมวดหมู่ { get; set; }
+    public decimal อัตราภาษี { get; set; }
+    public bool เป็นสินค้าบริการ { get; set; }
+    public decimal ต้นทุนสินค้า { get; set; }
+    public string สถานะสินค้า { get; set; }
+    public int จุดสั่งซื้อ { get; set; }
+    public string รูปภาพสินค้า { get; set; }
+    public List<string> แท็กสินค้า { get; set; }
+    public List<ข้อมูลตัวเลือกสินค้า> ตัวเลือกสินค้า { get; set; }
+    public bool ต้องคิดภาษี { get; set; }
+    public string บาร์โค้ด { get; set; }
+    public int จำนวนขั้นต่ำในการขาย { get; set; }
+    public string คำอธิบายสินค้า { get; set; }
+    public string รหัสหมวดหมู่หลัก { get; set; }
+    public string รหัสหมวดหมู่ย่อย { get; set; }
+    public List<ราคาตามช่วงเวลา> ราคาพิเศษตามช่วงเวลา { get; set; }
+    public string รหัสสินค้าผู้จัดหา { get; set; }
+    public string รหัสพื้นที่จัดเก็บ { get; set; }
+    public decimal น้ำหนักสินค้า { get; set; }
+    public decimal ขนาดกว้าง { get; set; }
+    public decimal ขนาดยาว { get; set; }
+    public decimal ขนาดสูง { get; set; }
+    public bool ขายส่ง { get; set; }
+    public decimal ราคาขายส่ง { get; set; }
+    public bool มีสต็อกติดลบได้ { get; set; } // ข้อ 182
+    public int จุดสั่งซื้อสูงสุด { get; set; } // ข้อ 185
+    public string แบรนด์ { get; set; } // ข้อ 190
+    public string รุ่น { get; set; } // ข้อ 190
+    public string สี { get; set; } // ข้อ 191
+    public string ขนาด { get; set; } // ข้อ 191
+    public List<ข้อมูลส่วนประกอบ> ส่วนประกอบสินค้าชุด { get; set; } // ข้อ 194
+    public decimal ส่วนลดสูงสุดต่อรายการ { get; set; } // ข้อ 195
+    public DateTime? วันที่นำเข้า { get; set; } // ข้อ 197
+    public string ผู้ผลิต { get; set; } // ข้อ 198
+    public string รหัสสินค้าภายนอก { get; set; } // ข้อ 200
+    public int จำนวนบรรจุต่อกล่อง { get; set; } // ข้อ 201
+    public bool กำหนดเองราคาได้ { get; set; } // ข้อ 202
+}
+
+public class ข้อมูลส่วนประกอบ // ข้อ 194
+{
+    public string รหัสสินค้าส่วนประกอบ { get; set; }
+    public int จำนวนที่ใช้ { get; set; }
+}
+
+public class ข้อมูลตัวเลือกสินค้า {
+    public string ชื่อตัวเลือก { get; set; }
+    public List<string> ค่าตัวเลือก { get; set; }
+    public Dictionary<string, decimal> ราคาเพิ่มลดตามตัวเลือก { get; set; }
+    public Dictionary<string, int> สต็อกตามตัวเลือก { get; set; }
+}
+
+public class ราคาตามช่วงเวลา
+{
+    public decimal ราคา { get; set; }
+    public DateTime วันที่เริ่มต้น { get; set; }
+    public DateTime วันที่สิ้นสุด { get; set; }
+    public string วันที่ใช้ได้ { get; set; }
+    public TimeSpan เวลาเริ่มต้น { get; set; }
+    public TimeSpan เวลาสิ้นสุด { get; set; }
+}
+
+public class รายการสินค้าในตะกร้า {
+    public สินค้า สินค้า { get; set; }
+    public int จำนวน { get; set; }
+    public decimal ราคารวมรายการ { get; set; }
+    public decimal ส่วนลดรายการ { get; set; }
+    public string รหัสส่วนลดที่ใช้ { get; set; }
+    public List<string> ตัวเลือกที่เลือก { get; set; }
+    public decimal ราคาที่บันทึกขณะเพิ่ม { get; set; }
+    public decimal ราคาที่ปรับแล้ว { get; set; }
+    public string หมายเหตุรายการ { get; set; } // ข้อ 181
+}
+
+public class ใบเสร็จ {
+    public string เลขที่บิล { get; set; }
+    public DateTime วันที่เวลาขาย { get; set; }
+    public List<รายการสินค้าในตะกร้า> รายการสินค้า { get; set; }
+    public decimal ยอดรวมก่อนหักส่วนลด { get; set; }
+    public decimal ส่วนลดรวม { get; set; }
+    public decimal ยอดรวมหลังหักส่วนลด { get; set; }
+    public decimal ภาษีมูลค่าเพิ่ม { get; set; }
+    public decimal ยอดสุทธิที่ต้องชำระ { get; set; }
+    public string ช่องทางการชำระเงิน { get; set; }
+    public decimal ยอดเงินที่รับมา { get; set; }
+    public decimal เงินทอน { get; set; }
+    public ลูกค้า ข้อมูลลูกค้า { get; set; }
+    public พนักงาน ข้อมูลพนักงานขาย { get; set; }
+    public string สถานะบิล { get; set; }
+    public string หมายเหตุ { get; set; }
+    public decimal ค่าจัดส่ง { get; set; }
+    public string รหัสกะที่ขาย { get; set; }
+    public string หมายเลขเครื่อง POS { get; set; }
+    public string หมายเลขลูกค้าอ้างอิง { get; set; }
+    public decimal คะแนนสะสมที่ใช้ { get; set; }
+    public string วิธีการจัดส่ง { get; set; }
+    public DateTime? กำหนดส่งมอบ { get; set; }
+    public string หมายเหตุการยกเลิก { get; set; }
+    public Dictionary<string, decimal> การชำระเงินแยกส่วน { get; set; }
+    public string เลขที่อ้างอิงการทำรายการ { get; set; }
+    public string รหัสโปรโมชั่นที่ใช้ { get; set; }
+    public string รหัสอ้างอิงการรับชำระ { get; set; }
+    public string สถานะการจัดส่ง { get; set; }
+    public string รหัสไปรษณีย์จัดส่ง { get; set; }
+    public string ที่อยู่จัดส่งเต็ม { get; set; }
+    public string รหัสผู้ดูแลที่อนุมัติ { get; set; }
+    public decimal ค่าธรรมเนียมบัตรเครดิต { get; set; }
+    public string ประเภทบิล { get; set; }
+    public string เลขที่บิลอ้างอิง { get; set; }
+    public string รหัสโปรโมชั่นที่ใช้ในบิล { get; set; }
+    public string รหัสคูปองที่ใช้ในบิล { get; set; }
+    public string สาขาที่ทำรายการ { get; set; }
+    public bool มีการยกเลิกบางรายการ { get; set; } // ข้อ 184
+    public decimal ยอดเงินมัดจำ { get; set; } // ข้อ 186
+    public bool บิลออนไลน์ { get; set; } // ข้อ 187
+    public string ช่องทางการขาย { get; set; } // ข้อ 187
+    public string รหัสตัวแทนขาย { get; set; } // ข้อ 188
+    public string รหัสช่องทางการตลาด { get; set; } // ข้อ 189
+    public string รหัสติดตามแคมเปญ { get; set; } // ข้อ 189
+    public string หมายเหตุพิเศษ { get; set; } // ข้อ 196
+    public bool ออกใบกำกับภาษี { get; set; } // ข้อ 203
+}
+
+public class ลูกค้า {
+    public string รหัสลูกค้า { get; set; }
+    public string ชื่อลูกค้า { get; set; }
+    public int แต้มสะสม { get; set; }
+    public List<ใบเสร็จ> ประวัติการซื้อ { get; set; }
+    public decimal วงเงินเครดิตคงเหลือ { get; set; }
+    public string เบอร์โทรศัพท์ { get; set; }
+    public string อีเมล { get; set; }
+    public string ที่อยู่ { get; set; }
+    public DateTime วันเกิด { get; set; }
+    public string ประเภทลูกค้า { get; set; }
+    public string รหัสสมาชิกภายนอก { get; set; }
+    public DateTime วันที่สมัครสมาชิก { get; set; }
+    public bool สถานะการเป็นสมาชิก { get; set; }
+    public string เลขประจำตัวผู้เสียภาษี { get; set; } // ข้อ 203
+}
+
+public class พนักงาน {
+    public string รหัสพนักงาน { get; set; }
+    public string ชื่อพนักงาน { get; set; }
+    public string รหัสผ่าน { get; set; }
+    public string สิทธิ์การใช้งาน { get; set; }
+    public string แผนก { get; set; }
+    public bool สามารถปรับเปลี่ยนราคาได้ { get; set; }
+    public DateTime วันที่เข้าทำงาน { get; set; }
+    public decimal ค่าคอมมิชชั่น { get; set; } // ข้อ 188
+}
+
+public class โปรโมชั่น {
+    public string รหัสโปรโมชั่น { get; set; }
+    public string ชื่อโปรโมชั่น { get; set; }
+    public string ประเภทโปรโมชั่น { get; set; }
+    public Func<List<รายการสินค้าในตะกร้า>, List<รายการสินค้าในตะกร้า>> คำนวณส่วนลดโปรโมชั่น { get; set; }
+    public DateTime วันที่เริ่มต้น { get; set; }
+    public DateTime วันที่สิ้นสุด { get; set; }
+    public decimal ยอดซื้อขั้นต่ำ { get; set; }
+    public List<string> สินค้าที่ร่วมรายการ { get; set; }
+    public List<string> สินค้าที่ไม่ร่วมรายการ { get; set; }
+    public int จำนวนครั้งที่ใช้ได้ { get; set; }
+    public int จำนวนครั้งที่ใช้ไปแล้ว { get; set; }
+    public List<string> สาขาที่ร่วมรายการ { get; set; }
+    public bool ใช้ได้กับราคาปกติเท่านั้น { get; set; }
+    public string เงื่อนไขเพิ่มเติม { get; set; } // ข้อ 192
+    public bool ซ้อนทับโปรโมชั่นอื่นได้ { get; set; } // ข้อ 193
+}
+
+public class คูปอง {
+    public string รหัสคูปอง { get; set; }
+    public decimal มูลค่าส่วนลด { get; set; }
+    public DateTime วันหมดอายุ { get; set; }
+    public bool ใช้งานแล้ว { get; set; }
+    public int จำนวนครั้งที่ใช้ได้ { get; set; }
+    public int จำนวนครั้งที่ใช้งานไปแล้ว { get; set; }
+    public string ประเภทคูปอง { get; set; }
+    public decimal เงื่อนไขยอดซื้อขั้นต่ำ { get; set; }
+    public bool สามารถใช้ได้หลายครั้ง { get; set; }
+    public List<string> สินค้าที่ร่วมรายการ { get; set; }
+}
+
+public class ข้อมูลกะ
+{
+    public string รหัสกะ { get; set; }
+    public DateTime เวลาเปิดกะ { get; set; }
+    public DateTime? เวลาปิดกะ { get; set; }
+    public พนักงาน พนักงานเปิดกะ { get; set; }
+    public พนักงาน พนักงานปิดกะ { get; set; }
+    public decimal ยอดขายเงินสด { get; set; }
+    public decimal ยอดขายบัตรเครดิต { get; set; }
+    public decimal ยอดรวมในกะ { get; set; }
+    public decimal เงินสดเริ่มต้นกะ { get; set; }
+    public decimal เงินสดปิดกะ { get; set; }
+    public decimal เงินเบิกจ่ายในกะ { get; set; }
+    public List<ใบเสร็จ> บิลที่ขายในกะ { get; set; }
+    public decimal ยอดรวมรับชำระ { get; set; }
+    public decimal ยอดรวมคืนเงิน { get; set; }
+    public int จำนวนบิลที่ออก { get; set; }
+    public int จำนวนบิลที่ยกเลิก { get; set; }
+    public decimal ยอดเงินมัดจำรับในกะ { get; set; } // ข้อ 186
+    public decimal ยอดเงินมัดจำคืนในกะ { get; set; } // ข้อ 186
+}
+
+public class ข้อมูลผู้จัดหา {
+    public string รหัสผู้จัดหา { get; set; }
+    public string ชื่อผู้จัดหา { get; set; }
+    public string เบอร์โทรศัพท์ { get; set; }
+    public string ที่อยู่ { get; set; }
+    public List<string> สินค้าที่จัดหา { get; set; } // ข้อ 199
+}
+
+public class รายการรับสินค้า {
+    public string เลขที่รับสินค้า { get; set; }
+    public DateTime วันที่รับ { get; set; }
+    public ข้อมูลผู้จัดหา ผู้จัดหา { get; set; }
+    public List<สินค้า> รายการสินค้าที่รับ { get; set; }
+    public พนักงาน ผู้รับสินค้า { get; set; }
+    public string หมายเหตุ { get; set; }
+    public string สถานะการรับสินค้า { get; set; }
+    public string หมายเลขใบสั่งซื้อ { get; set; } // ข้อ 183
+}
+
+public class ใบเสนอราคา {
+    public string เลขที่ใบเสนอราคา { get; set; }
+    public DateTime วันที่สร้าง { get; set; }
+    public ลูกค้า ข้อมูลลูกค้า { get; set; }
+    public List<รายการสินค้าในตะกร้า> รายการสินค้า { get; set; }
+    public decimal ยอดรวมสุทธิ { get; set; }
+    public DateTime วันหมดอายุใบเสนอราคา { get; set; }
+    public string สถานะ { get; set; }
+    public string รหัสพนักงานที่สร้าง { get; set; }
+}
+
+public class รายการคืนสินค้า
+{
+    public string เลขที่คืนสินค้า { get; set; }
+    public string เลขที่บิลต้นฉบับ { get; set; }
+    public DateTime วันที่คืน { get; set; }
+    public ลูกค้า ลูกค้าผู้คืน { get; set; }
+    public List<รายการสินค้าในตะกร้า> รายการสินค้าที่คืน { get; set; }
+    public decimal จำนวนเงินที่คืน { get; set; }
+    public พนักงาน พนักงานผู้ทำรายการ { get; set; }
+    public string เหตุผลการคืน { get; set; }
+    public bool คืนเข้าสต็อก { get; set; }
+}
+
+public class พื้นที่จัดเก็บสินค้า
+{
+    public string รหัสพื้นที่ { get; set; }
+    public string ชื่อพื้นที่ { get; set; }
+    public string รายละเอียด { get; set; }
+    public int ความจุสูงสุด { get; set; } // ข้อ 204
+}
+
+public class การเคลื่อนไหวสต็อก // ข้อ 205
+{
+    public DateTime วันที่ { get; set; }
+    public string รหัสสินค้า { get; set; }
+    public string ประเภทการเคลื่อนไหว { get; set; } // "รับเข้า", "ขายออก", "ปรับปรุง", "คืนเข้า"
+    public int จำนวน { get; set; }
+    public พนักงาน ผู้ทำรายการ { get; set; }
+    public string เลขที่เอกสารอ้างอิง { get; set; } // เช่น เลขที่บิล, เลขที่รับสินค้า
+    public string เหตุผล { get; set; }
+}
+
+public class รายการสั่งซื้อสินค้า // ข้อ 206
+{
+    public string เลขที่ใบสั่งซื้อ { get; set; }
+    public DateTime วันที่สร้าง { get; set; }
+    public ข้อมูลผู้จัดหา ผู้จัดหา { get; set; }
+    public List<Tuple<สินค้า, int>> รายการสินค้าที่สั่ง { get; set; } // สินค้าและจำนวนที่สั่ง
+    public decimal ยอดรวมที่สั่ง { get; set; }
+    public string สถานะใบสั่งซื้อ { get; set; } // "รอดำเนินการ", "สั่งแล้ว", "ได้รับบางส่วน", "ได้รับครบแล้ว", "ยกเลิก"
+    public DateTime? กำหนดรับสินค้า { get; set; }
+    public พนักงาน ผู้สร้าง { get; set; }
+}
+
+public class ระบบPOS
+{
+    private List<สินค้า> คลังสินค้า;
+    private List<รายการสินค้าในตะกร้า> ตะกร้าสินค้า;
+    private List<ใบเสร็จ> ประวัติการขาย;
+    private List<ลูกค้า> ฐานข้อมูลลูกค้า;
+    private List<พนักงาน> ฐานข้อมูลพนักงาน;
+    private List<โปรโมชั่น> รายการโปรโมชั่น;
+    private List<คูปอง> รายการคูปอง;
+    private List<ข้อมูลกะ> ประวัติกะขาย;
+    private List<ข้อมูลผู้จัดหา> ฐานข้อมูลผู้จัดหา;
+    private List<รายการรับสินค้า> ประวัติการรับสินค้า;
+    private List<ใบเสนอราคา> รายการใบเสนอราคา;
+    private List<string> หมวดหมู่สินค้าทั้งหมด;
+    private List<รายการคืนสินค้า> ประวัติการคืนสินค้า;
+    private List<พื้นที่จัดเก็บสินค้า> พื้นที่จัดเก็บสินค้าทั้งหมด;
+    private List<การเคลื่อนไหวสต็อก> ประวัติการเคลื่อนไหวสต็อก; // ข้อ 205
+    private List<รายการสั่งซื้อสินค้า> รายการสั่งซื้อสินค้าทั้งหมด; // ข้อ 206
+
+
+    private พนักงาน พนักงานที่เข้าสู่ระบบปัจจุบัน;
+    private string คลังสินค้าปัจจุบัน;
+    private ข้อมูลกะ กะปัจจุบัน;
+
+    public ระบบPOS()
+    {
+        คลังสินค้า = new List<สินค้า>();
+        ตะกร้าสินค้า = new List<รายการสินค้าในตะกร้า>();
+        ประวัติการขาย = new List<ใบเสร็จ>();
+        ฐานข้อมูลลูกค้า = new List<ลูกค้า>();
+        ฐานข้อมูลพนักงาน = new List<พนักงาน>();
+        รายการโปรโมชั่น = new List<โปรโมชั่น>();
+        รายการคูปอง = new List<คูปอง>();
+        ประวัติกะขาย = new List<ข้อมูลกะ>();
+        ฐานข้อมูลผู้จัดหา = new List<ข้อมูลผู้จัดหา>();
+        ประวัติการรับสินค้า = new List<รายการรับสินค้า>();
+        รายการใบเสนอราคา = new List<ใบเสนอราคา>();
+        หมวดหมู่สินค้าทั้งหมด = new List<string>();
+        ประวัติการคืนสินค้า = new List<รายการคืนสินค้า>();
+        พื้นที่จัดเก็บสินค้าทั้งหมด = new List<พื้นที่จัดเก็บสินค้า>();
+        ประวัติการเคลื่อนไหวสต็อก = new List<การเคลื่อนไหวสต็อก>();
+        รายการสั่งซื้อสินค้าทั้งหมด = new List<รายการสั่งซื้อสินค้า>();
+
+        คลังสินค้าปัจจุบัน = "คลังหลัก";
+
+        // ตัวอย่างข้อมูลเริ่มต้น
+        ฐานข้อมูลพนักงาน.Add(new พนักงาน { รหัสพนักงาน = "EMP001", ชื่อพนักงาน = "แอดมิน", รหัสผ่าน = "admin123", สิทธิ์การใช้งาน = "Admin", สามารถปรับเปลี่ยนราคาได้ = true });
+        ฐานข้อมูลพนักงาน.Add(new พนักงาน { รหัสพนักงาน = "EMP002", ชื่อพนักงาน = "แคชเชียร์", รหัสผ่าน = "cashier123", สิทธิ์การใช้งาน = "Cashier", สามารถปรับเปลี่ยนราคาได้ = false });
+        หมวดหมู่สินค้าทั้งหมด.Add("อาหาร");
+        หมวดหมู่สินค้าทั้งหมด.Add("เครื่องดื่ม");
+        พื้นที่จัดเก็บสินค้าทั้งหมด.Add(new พื้นที่จัดเก็บสินค้า { รหัสพื้นที่ = "A1", ชื่อพื้นที่ = "ชั้นวาง A1", รายละเอียด = "สินค้าทั่วไป" });
+    }
+
+    // --- 181. บันทึกหมายเหตุสำหรับสินค้าแต่ละรายการในตะกร้า
+    // เพิ่ม `string หมายเหตุรายการ` ในคลาส `รายการสินค้าในตะกร้า`
+
+    // --- 182. ระบบควบคุมการอนุญาตให้สต็อกติดลบได้ (Negative Stock)
+    // เพิ่ม `bool มีสต็อกติดลบได้` ในคลาส `สินค้า`
+    public bool สามารถขายสินค้าได้(สินค้า สินค้า, int จำนวน)
+    {
+        if (สินค้า.จำนวนคงเหลือ - จำนวน < 0 && !สินค้า.มีสต็อกติดลบได้)
+        {
+            Console.WriteLine($"ไม่สามารถขายสินค้า {สินค้า.ชื่อสินค้า} ได้ เนื่องจากสต็อกไม่พอ");
+            return false;
+        }
+        return true;
+    }
+
+    // --- 183. ระบบอ้างอิงใบสั่งซื้อเมื่อรับสินค้า
+    // เพิ่ม `string หมายเลขใบสั่งซื้อ` ในคลาส `รายการรับสินค้า`
+
+    // --- 184. ระบบบ่งชี้ว่ามีการยกเลิกสินค้าบางรายการในบิลที่ออกไปแล้ว
+    // เพิ่ม `bool มีการยกเลิกบางรายการ` ในคลาส `ใบเสร็จ`
+
+    // --- 185. ระบบกำหนดจุดสั่งซื้อสูงสุดสำหรับสินค้า (Maximum Stock Level)
+    // เพิ่ม `int จุดสั่งซื้อสูงสุด` ในคลาส `สินค้า`
+
+    // --- 186. ระบบจัดการยอดเงินมัดจำ (รับมัดจำ, คืนมัดจำ, สรุปยอดมัดจำในกะ)
+    // เพิ่ม `decimal ยอดเงินมัดจำ` ในคลาส `ใบเสร็จ`
+    // เพิ่ม `decimal ยอดเงินมัดจำรับในกะ`, `decimal ยอดเงินมัดจำคืนในกะ` ในคลาส `ข้อมูลกะ`
+    public void รับเงินมัดจำ(ใบเสร็จ บิล, decimal จำนวนเงิน)
+    {
+        บิล.ยอดเงินมัดจำ = จำนวนเงิน;
+        Console.WriteLine($"รับเงินมัดจำสำหรับบิล {บิล.เลขที่บิล} จำนวน {จำนวนเงิน:N2} บาท");
+        กะปัจจุบัน.ยอดเงินมัดจำรับในกะ += จำนวนเงิน;
+    }
+
+    // --- 187. รองรับการแยกบิลขายออนไลน์/หน้าร้าน (Online/Offline Sales)
+    // เพิ่ม `bool บิลออนไลน์`, `string ช่องทางการขาย` ในคลาส `ใบเสร็จ`
+
+    // --- 188. ระบบคำนวณค่าคอมมิชชั่นพนักงานขาย
+    // เพิ่ม `decimal ค่าคอมมิชชั่น` ในคลาส `พนักงาน`
+    public decimal คำนวณค่าคอมมิชชั่น(ใบเสร็จ บิล)
+    {
+        if (บิล.ข้อมูลพนักงานขาย != null)
+        {
+            return บิล.ยอดสุทธิที่ต้องชำระ * (บิล.ข้อมูลพนักงานขาย.ค่าคอมมิชชั่น / 100);
+        }
+        return 0;
+    }
+
+    // --- 189. ระบบบันทึกช่องทางการตลาดหรือรหัสแคมเปญในบิล
+    // เพิ่ม `string รหัสช่องทางการตลาด`, `string รหัสติดตามแคมเปญ` ในคลาส `ใบเสร็จ`
+
+    // --- 190. จัดการข้อมูลแบรนด์และรุ่นของสินค้า
+    // เพิ่ม `string แบรนด์`, `string รุ่น` ในคลาส `สินค้า`
+
+    // --- 191. รองรับการจัดการสินค้าที่มีหลายคุณลักษณะ (เช่น สี, ขนาด) ในสต็อกเดียวกัน
+    // สามารถใช้ `ข้อมูลตัวเลือกสินค้า` ในคลาส `สินค้า` และ `สต็อกตามตัวเลือก`
+
+    // --- 192. กำหนดเงื่อนไขเพิ่มเติมสำหรับโปรโมชั่น (เช่น ซื้อ A แถม B)
+    // เพิ่ม `string เงื่อนไขเพิ่มเติม` ในคลาส `โปรโมชั่น` (ต้องมี Logic การประมวลผลที่ซับซ้อนขึ้น)
+
+    // --- 193. กำหนดว่าโปรโมชั่นสามารถซ้อนทับกันได้หรือไม่ (Stackable Promotions)
+    // เพิ่ม `bool ซ้อนทับโปรโมชั่นอื่นได้` ในคลาส `โปรโมชั่น`
+
+    // --- 194. ระบบจัดการสินค้าที่เป็นชุด (Bundle/Kit) และตัดสต็อกส่วนประกอบ
+    // เพิ่ม `List<ข้อมูลส่วนประกอบ>` ในคลาส `สินค้า` (สำหรับสินค้าที่เป็นชุด)
+    public void ตัดสต็อกสินค้าชุด(สินค้า สินค้าชุด, int จำนวน)
+    {
+        if (สินค้าชุด.ส่วนประกอบสินค้าชุด != null)
+        {
+            foreach (var ส่วนประกอบ in สินค้าชุด.ส่วนประกอบสินค้าชุด)
+            {
+                var สินค้าจริง = คลังสินค้า.FirstOrDefault(s => s.รหัสสินค้า == ส่วนประกอบ.รหัสสินค้าส่วนประกอบ);
+                if (สินค้าจริง != null)
+                {
+                    สินค้าจริง.จำนวนคงเหลือ -= ส่วนประกอบ.จำนวนที่ใช้ * จำนวน;
+                    Console.WriteLine($"ตัดสต็อกส่วนประกอบ {สินค้าจริง.ชื่อสินค้า} จำนวน {ส่วนประกอบ.จำนวนที่ใช้ * จำนวน} ชิ้น");
+                }
+            }
+        }
+    }
+
+    // --- 195. กำหนดส่วนลดสูงสุดต่อรายการสินค้า
+    // เพิ่ม `decimal ส่วนลดสูงสุดต่อรายการ` ในคลาส `สินค้า`
+
+    // --- 196. บันทึกหมายเหตุพิเศษในบิลสำหรับผู้ดูแลระบบ
+    // เพิ่ม `string หมายเหตุพิเศษ` ในคลาส `ใบเสร็จ`
+
+    // --- 197. ระบบบันทึกวันที่นำเข้าสินค้า
+    // เพิ่ม `DateTime? วันที่นำเข้า` ในคลาส `สินค้า`
+
+    // --- 198. บันทึกข้อมูลผู้ผลิตสินค้า
+    // เพิ่ม `string ผู้ผลิต` ในคลาส `สินค้า`
+
+    // --- 199. จัดการข้อมูลสินค้าที่ผู้จัดหาแต่ละรายจัดหาได้
+    // เพิ่ม `List<string> สินค้าที่จัดหา` ในคลาส `ข้อมูลผู้จัดหา`
+
+    // --- 200. รองรับรหัสสินค้าภายนอก (External Product ID)
+    // เพิ่ม `string รหัสสินค้าภายนอก` ในคลาส `สินค้า`
+
+    // --- 201. บันทึกจำนวนสินค้าบรรจุต่อกล่อง (กรณีขายเป็นกล่อง/แพ็ค)
+    // เพิ่ม `int จำนวนบรรจุต่อกล่อง` ในคลาส `สินค้า`
+
+    // --- 202. กำหนดสินค้าที่สามารถกำหนดราคาเองได้ (Open Price Item)
+    // เพิ่ม `bool กำหนดเองราคาได้` ในคลาส `สินค้า`
+    public void เพิ่มสินค้าแบบกำหนดราคาเอง(สินค้า สินค้า, decimal ราคาที่กำหนดเอง, int จำนวน)
+    {
+        if (สินค้า.กำหนดเองราคาได้)
+        {
+            ตะกร้าสินค้า.Add(new รายการสินค้าในตะกร้า
+            {
+                สินค้า = สินค้า,
+                จำนวน = จำนวน,
+                ราคารวมรายการ = ราคาที่กำหนดเอง * จำนวน,
+                ราคาที่บันทึกขณะเพิ่ม = ราคาที่กำหนดเอง,
+                ราคาที่ปรับแล้ว = ราคาที่กำหนดเอง // ในกรณีนี้คือราคาเดียวกัน
+            });
+            Console.WriteLine($"เพิ่มสินค้า {สินค้า.ชื่อสินค้า} จำนวน {จำนวน} ชิ้น ราคา {ราคาที่กำหนดเอง:N2} เข้าตะกร้า");
+        }
+        else
+        {
+            Console.WriteLine($"สินค้า {สินค้า.ชื่อสินค้า} ไม่สามารถกำหนดราคาเองได้");
+        }
+    }
+
+    // --- 203. ระบบรองรับการขอใบกำกับภาษีเต็มรูปแบบสำหรับลูกค้า
+    // เพิ่ม `bool ออกใบกำกับภาษี` ในคลาส `ใบเสร็จ`
+    // เพิ่ม `string เลขประจำตัวผู้เสียภาษี` ในคลาส `ลูกค้า`
+
+    // --- 204. ระบบจัดการความจุของพื้นที่จัดเก็บสินค้า
+    // เพิ่ม `int ความจุสูงสุด` ในคลาส `พื้นที่จัดเก็บสินค้า`
+
+    // --- 205. ระบบบันทึกประวัติการเคลื่อนไหวสต็อกโดยละเอียด (Stock Movement Log)
+    // เพิ่มคลาส `การเคลื่อนไหวสต็อก` และ `List<การเคลื่อนไหวสต็อก>` ใน `ระบบPOS`
+    public void บันทึกการเคลื่อนไหวสต็อก(string รหัสสินค้า, string ประเภท, int จำนวน, พนักงาน ผู้ทำรายการ, string เลขที่เอกสารอ้างอิง, string เหตุผล = "")
+    {
+        ประวัติการเคลื่อนไหวสต็อก.Add(new การเคลื่อนไหวสต็อก
+        {
+            วันที่ = DateTime.Now,
+            รหัสสินค้า = รหัสสินค้า,
+            ประเภทการเคลื่อนไหว = ประเภท,
+            จำนวน = จำนวน,
+            ผู้ทำรายการ = ผู้ทำรายการ,
+            เลขที่เอกสารอ้างอิง = เลขที่เอกสารอ้างอิง,
+            เหตุผล = เหตุผล
+        });
+        Console.WriteLine($"บันทึกการเคลื่อนไหวสต็อก: สินค้า {รหัสสินค้า} ({ประเภท}) จำนวน {จำนวน}");
+    }
+
+    // --- 206. ระบบจัดการใบสั่งซื้อสินค้า (Purchase Order)
+    // เพิ่มคลาส `รายการสั่งซื้อสินค้า` และ `List<รายการสั่งซื้อสินค้า>` ใน `ระบบPOS`
+    public รายการสั่งซื้อสินค้า สร้างใบสั่งซื้อ(ข้อมูลผู้จัดหา ผู้จัดหา, List<Tuple<สินค้า, int>> รายการที่สั่ง, พนักงาน ผู้สร้าง)
+    {
+        var ใบสั่งซื้อใหม่ = new รายการสั่งซื้อสินค้า
+        {
+            เลขที่ใบสั่งซื้อ = $"PO-{Guid.NewGuid().ToString().Substring(0, 8)}",
+            วันที่สร้าง = DateTime.Now,
+            ผู้จัดหา = ผู้จัดหา,
+            รายการสินค้าที่สั่ง = รายการที่สั่ง,
+            ยอดรวมที่สั่ง = รายการที่สั่ง.Sum(item => item.Item1.ราคาต่อหน่วย * item.Item2),
+            สถานะใบสั่งซื้อ = "รอดำเนินการ",
+            ผู้สร้าง = ผู้สร้าง
+        };
+        รายการสั่งซื้อสินค้าทั้งหมด.Add(ใบสั่งซื้อใหม่);
+        Console.WriteLine($"สร้างใบสั่งซื้อ {ใบสั่งซื้อใหม่.เลขที่ใบสั่งซื้อ} สำเร็จ");
+        return ใบสั่งซื้อใหม่;
+    }
+
+    // --- 207. ระบบแจ้งเตือนเมื่อสินค้าถึงจุดสั่งซื้อ
+    public List<สินค้า> แจ้งเตือนสินค้าถึงจุดสั่งซื้อ()
+    {
+        return คลังสินค้า.Where(s => s.จำนวนคงเหลือ <= s.จุดสั่งซื้อ && s.สถานะสินค้า == "Active").ToList();
+    }
+
+    // --- 208. ระบบรายงานสต็อกสินค้าตามพื้นที่จัดเก็บ
+    public Dictionary<string, List<สินค้า>> รายงานสต็อกตามพื้นที่จัดเก็บ()
+    {
+        return คลังสินค้า.GroupBy(s => s.รหัสพื้นที่จัดเก็บ ?? "ไม่ระบุ")
+                         .ToDictionary(g => g.Key, g => g.ToList());
+    }
+
+    // --- 209. ระบบจัดการผู้จัดหา (เพิ่ม, แก้ไข, ลบ)
+    public void จัดการผู้จัดหา(ข้อมูลผู้จัดหา ผู้จัดหา, string การกระทำ)
+    {
+        if (การกระทำ == "เพิ่ม") ฐานข้อมูลผู้จัดหา.Add(ผู้จัดหา);
+        else if (การกระทำ == "ลบ") ฐานข้อมูลผู้จัดหา.Remove(ผู้จัดหา);
+        // สามารถเพิ่ม logic การแก้ไข
+        Console.WriteLine($"จัดการผู้จัดหา {ผู้จัดหา.ชื่อผู้จัดหา} ({การกระทำ}) สำเร็จ");
+    }
+
+    // --- 210. ระบบออกรายงานสินค้าขายดี (Top Selling Products)
+    public List<Tuple<สินค้า, int>> รายงานสินค้าขายดี(DateTime วันที่เริ่มต้น, DateTime วันที่สิ้นสุด, int จำนวนสูงสุด = 10)
+    {
+        return ประวัติการขาย
+            .Where(b => b.วันที่เวลาขาย >= วันที่เริ่มต้น && b.วันที่เวลาขาย <= วันที่สิ้นสุด)
+            .SelectMany(b => b.รายการสินค้า)
+            .GroupBy(item => item.สินค้า)
+            .Select(g => Tuple.Create(g.Key, g.Sum(item => item.จำนวน)))
+            .OrderByDescending(x => x.Item2)
+            .Take(จำนวนสูงสุด)
+            .ToList();
+    }
+
+    // ฟังก์ชันเพิ่มเติมสำหรับ `ระบบPOS` เพื่อการจัดการที่ครบวงจรขึ้น
+    public void เพิ่มสินค้า(สินค้า สินค้าใหม่)
+    {
+        คลังสินค้า.Add(สินค้าใหม่);
+        Console.WriteLine($"เพิ่มสินค้า {สินค้าใหม่.ชื่อสินค้า} (รหัส: {สินค้าใหม่.รหัสสินค้า}) เข้าสู่ระบบแล้ว");
+    }
+
+    public สินค้า รับข้อมูลสินค้า(string รหัสสินค้า)
+    {
+        return คลังสินค้า.FirstOrDefault(s => s.รหัสสินค้า == รหัสสินค้า);
+    }
+
+    public void แสดงตะกร้าสินค้า()
+    {
+        Console.WriteLine("\n--- รายการในตะกร้า ---");
+        if (!ตะกร้าสินค้า.Any())
+        {
+            Console.WriteLine("ตะกร้าสินค้าว่างเปล่า");
+            return;
+        }
+        foreach (var item in ตะกร้าสินค้า)
+        {
+            Console.WriteLine($"- {item.สินค้า.ชื่อสินค้า} ({item.สินค้า.รหัสสินค้า}) x {item.จำนวน} = {item.ราคารวมรายการ:N2} (ส่วนลด: {item.ส่วนลดรายการ:N2}) [ราคาปรับแล้ว: {item.ราคาที่ปรับแล้ว:N2}]");
+            if (!string.IsNullOrEmpty(item.หมายเหตุรายการ))
+            {
+                Console.WriteLine($"  หมายเหตุ: {item.หมายเหตุรายการ}"); // ข้อ 181
+            }
+        }
+        Console.WriteLine($"ยอดรวมก่อนหักส่วนลด: {ตะกร้าสินค้า.Sum(x => x.ราคารวมรายการ):N2}");
+        Console.WriteLine($"ส่วนลดรวม: {ตะกร้าสินค้า.Sum(x => x.ส่วนลดรายการ):N2}");
+        Console.WriteLine($"ยอดรวมหลังหักส่วนลด: {ตะกร้าสินค้า.Sum(x => x.ราคารวมรายการ - x.ส่วนลดรายการ):N2}");
+        Console.WriteLine("-----------------------\n");
+    }
+
+    public void ล็อกอิน(string รหัสพนักงาน, string รหัสผ่าน)
+    {
+        var พนักงาน = ฐานข้อมูลพนักงาน.FirstOrDefault(p => p.รหัสพนักงาน == รหัสพนักงาน && p.รหัสผ่าน == รหัสผ่าน);
+        if (พนักงาน != null)
+        {
+            พนักงานที่เข้าสู่ระบบปัจจุบัน = พนักงาน;
+            บันทึกการเข้าออกระบบ(พนักงาน, "Login");
+            Console.WriteLine($"ล็อกอินสำเร็จ: {พนักงาน.ชื่อพนักงาน} (สิทธิ์: {พนักงาน.สิทธิ์การใช้งาน})");
+        }
+        else
+        {
+            Console.WriteLine("รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง");
+        }
+    }
+
+    public ใบเสร็จ ชำระเงิน(string ช่องทางการชำระ, decimal ยอดเงินที่รับมา, ลูกค้า ลูกค้าที่ซื้อ = null, decimal ค่าขนส่ง = 0)
+    {
+        // ตรวจสอบสต็อกก่อนชำระเงิน
+        foreach(var item in ตะกร้าสินค้า)
+        {
+            if (!สามารถขายสินค้าได้(item.สินค้า, item.จำนวน))
+            {
+                จัดการข้อผิดพลาดการชำระเงิน($"ไม่สามารถทำรายการได้: สต็อกสินค้า {item.สินค้า.ชื่อสินค้า} ไม่เพียงพอ");
+                return null;
+            }
+        }
+
+        // คำนวณยอดเงินสุทธิ
+        var ยอดรวมก่อนหัก = ตะกร้าสินค้า.Sum(x => x.ราคารวมรายการ);
+        var ส่วนลดทั้งหมด = ตะกร้าสินค้า.Sum(x => x.ส่วนลดรายการ);
+        var ยอดรวมหลังหักส่วนลด = ยอดรวมก่อนหัก - ส่วนลดทั้งหมด;
+        var ภาษี = คำนวณภาษีมูลค่าเพิ่มจากตะกร้า();
+        var ยอดสุทธิที่ต้องชำระ = ยอดรวมหลังหักส่วนลด + ภาษี + ค่าขนส่ง;
+
+        var ใบเสร็จใหม่ = new ใบเสร็จ
+        {
+            เลขที่บิล = Guid.NewGuid().ToString(),
+            วันที่เวลาขาย = DateTime.Now,
+            รายการสินค้า = new List<รายการสินค้าในตะกร้า>(ตะกร้าสินค้า),
+            ยอดรวมก่อนหักส่วนลด = ยอดรวมก่อนหัก,
+            ส่วนลดรวม = ส่วนลดทั้งหมด,
+            ยอดรวมหลังหักส่วนลด = ยอดรวมหลังหักส่วนลด,
+            ภาษีมูลค่าเพิ่ม = ภาษี,
+            ยอดสุทธิที่ต้องชำระ = ยอดสุทธิที่ต้องชำระ,
+            ช่องทางการชำระเงิน = ช่องทางการชำระ,
+            ยอดเงินที่รับมา = ยอดเงินที่รับมา,
+            ข้อมูลลูกค้า = ลูกค้าที่ซื้อ,
+            ข้อมูลพนักงานขาย = พนักงานที่เข้าสู่ระบบปัจจุบัน,
+            ค่าจัดส่ง = ค่าขนส่ง,
+            สถานะบิล = "เสร็จสมบูรณ์",
+            รหัสกะที่ขาย = กะปัจจุบัน?.รหัสกะ,
+            ประเภทบิล = "ขายปกติ",
+            สาขาที่ทำรายการ = "สาขาหลัก"
+        };
+
+        if (ช่องทางการชำระ == "เงินสด")
+        {
+            ใบเสร็จใหม่.เงินทอน = ยอดเงินที่รับมา - ยอดสุทธิที่ต้องชำระ;
+        }
+
+        // อัพเดตสต็อกและแต้มสะสม
+        foreach (var รายการในบิล in ตะกร้าสินค้า)
+        {
+            var สินค้าในคลัง = คลังสินค้า.FirstOrDefault(s => s.รหัสสินค้า == รายการในบิล.สินค้า.รหัสสินค้า);
+            if (สินค้าในคลัง != null)
+            {
+                สินค้าในคลัง.จำนวนคงเหลือ -= รายการในบิล.จำนวน;
+                บันทึกการเคลื่อนไหวสต็อก(สินค้าในคลัง.รหัสสินค้า, "ขายออก", รายการในบิล.จำนวน, พนักงานที่เข้าสู่ระบบปัจจุบัน, ใบเสร็จใหม่.เลขที่บิล, $"ขายในบิล {ใบเสร็จใหม่.เลขที่บิล}"); // ข้อ 205
+
+                if (สินค้าในคลัง.ส่วนประกอบสินค้าชุด != null && สินค้าในคลัง.ส่วนประกอบสินค้าชุด.Any()) // ข้อ 194
+                {
+                    ตัดสต็อกสินค้าชุด(สินค้าในคลัง, รายการในบิล.จำนวน);
+                }
+            }
+        }
+
+        if (ลูกค้าที่ซื้อ != null)
+        {
+            ลูกค้าที่ซื้อ.แต้มสะสม += (int)(ยอดสุทธิที่ต้องชำระ / 100);
+            if (ลูกค้าที่ซื้อ.ประวัติการซื้อ == null) ลูกค้าที่ซื้อ.ประวัติการซื้อ = new List<ใบเสร็จ>();
+            ลูกค้าที่ซื้อ.ประวัติการซื้อ.Add(ใบเสร็จใหม่);
+        }
+
+        ประวัติการขาย.Add(ใบเสร็จใหม่);
+        กะปัจจุบัน?.บิลที่ขายในกะ.Add(ใบเสร็จใหม่);
+        กะปัจจุบัน.จำนวนบิลที่ออก++;
+        ตะกร้าสินค้า.Clear();
+        Console.WriteLine($"ชำระเงินสำเร็จ! เลขที่บิล: {ใบเสร็จใหม่.เลขที่บิล}");
+        return ใบเสร็จใหม่;
+    }
+
+    public void พิมพ์ใบเสร็จ(ใบเสร็จ บิล)
+    {
+        Console.WriteLine($"\n--- ใบเสร็จรับเงิน (บิลเลขที่: {บิล.เลขที่บิล}) ---");
+        Console.WriteLine($"วันที่/เวลา: {บิล.วันที่เวลาขาย}");
+        Console.WriteLine($"พนักงานขาย: {บิล.ข้อมูลพนักงานขาย?.ชื่อพนักงาน ?? "ไม่ระบุ"}");
+        Console.WriteLine($"ลูกค้า: {บิล.ข้อมูลลูกค้า?.ชื่อลูกค้า ?? "ลูกค้าทั่วไป"}");
+        if (บิล.ออกใบกำกับภาษี && บิล.ข้อมูลลูกค้า?.เลขประจำตัวผู้เสียภาษี != null) // ข้อ 203
+        {
+             Console.WriteLine($"เลขประจำตัวผู้เสียภาษี: {บิล.ข้อมูลลูกค้า.เลขประจำตัวผู้เสียภาษี}");
+        }
+        Console.WriteLine("----------------------------------");
+        foreach (var item in บิล.รายการสินค้า)
+        {
+            Console.WriteLine($"{item.สินค้า.ชื่อสินค้า} ({item.สินค้า.รหัสสินค้า}) x {item.จำนวน} = {item.ราคารวมรายการ:N2}");
+            if (item.ส่วนลดรายการ > 0)
+            {
+                Console.WriteLine($"  (ส่วนลด: {item.ส่วนลดรายการ:N2})");
+            }
+            if (!string.IsNullOrEmpty(item.หมายเหตุรายการ)) // ข้อ 181
+            {
+                Console.WriteLine($"  หมายเหตุ: {item.หมายเหตุรายการ}");
+            }
+        }
+        Console.WriteLine("----------------------------------");
+        Console.WriteLine($"ยอดรวมก่อนหักส่วนลด: {บิล.ยอดรวมก่อนหักส่วนลด:N2}");
+        Console.WriteLine($"ส่วนลดรวม: {บิล.ส่วนลดรวม:N2}");
+        Console.WriteLine($"ยอดรวมหลังหักส่วนลด: {บิล.ยอดรวมหลังหักส่วนลด:N2}");
+        Console.WriteLine($"ภาษีมูลค่าเพิ่ม: {บิล.ภาษีมูลค่าเพิ่ม:N2}");
+        Console.WriteLine($"ค่าจัดส่ง: {บิล.ค่าจัดส่ง:N2}");
+        Console.WriteLine($"ยอดสุทธิที่ต้องชำระ: {บิล.ยอดสุทธิที่ต้องชำระ:N2}");
+        Console.WriteLine($"ชำระด้วย: {บิล.ช่องทางการชำระเงิน}");
+        Console.WriteLine($"ยอดรับมา: {บิล.ยอดเงินที่รับมา:N2}");
+        Console.WriteLine($"เงินทอน: {บิล.เงินทอน:N2}");
+        if (บิล.ยอดเงินมัดจำ > 0) // ข้อ 186
+        {
+            Console.WriteLine($"เงินมัดจำ: {บิล.ยอดเงินมัดจำ:N2}");
+        }
+        if (บิล.ข้อมูลลูกค้า != null)
+        {
+            Console.WriteLine($"แต้มสะสม: {บิล.ข้อมูลลูกค้า.แต้มสะสม}");
+        }
+        if (!string.IsNullOrEmpty(บิล.หมายเหตุพิเศษ)) // ข้อ 196
+        {
+            Console.WriteLine($"หมายเหตุพิเศษ: {บิล.หมายเหตุพิเศษ}");
+        }
+        Console.WriteLine("----------------------------------\n");
+    }
+
+    public bool ตรวจสอบสิทธิ์(พนักงาน พนักงาน, string การกระทำ)
+    {
+        if (พนักงาน == null) return false;
+        if (พนักงาน.สิทธิ์การใช้งาน == "Admin") return true;
+        if (พนักงาน.สิทธิ์การใช้งาน == "Manager" && การกระทำ != "จัดการผู้ใช้งาน") return true;
+        if (พนักงาน.สิทธิ์การใช้งาน == "Cashier" && (การกระทำ == "ทำรายการขาย" || การกระทำ == "ดูประวัติการขาย")) return true;
+
+        Console.WriteLine($"พนักงาน {พนักงาน.ชื่อพนักงาน} ไม่มีสิทธิ์ในการ {การกระทำ}");
+        return false;
+    }
+}
+```
+
+---
+
+### รายละเอียดฟีเจอร์ใหม่ 30 ข้อ
+
+181.  **บันทึกหมายเหตุสำหรับสินค้าแต่ละรายการในตะกร้า (Item Line Note)**:
+    * เพิ่ม `string หมายเหตุรายการ` ในคลาส **`รายการสินค้าในตะกร้า`** เพื่อให้แคชเชียร์สามารถเพิ่มข้อความพิเศษสำหรับสินค้าแต่ละชิ้นในบิล เช่น "ไม่ใส่น้ำตาล" หรือ "ห่อของขวัญ"
+
+182.  **ระบบควบคุมการอนุญาตให้สต็อกติดลบได้ (Negative Stock Control)**:
+    * เพิ่ม `bool มีสต็อกติดลบได้` ในคลาส **`สินค้า`**
+    * ฟังก์ชัน **`สามารถขายสินค้าได้`** จะตรวจสอบเงื่อนไขนี้ก่อนอนุญาตให้ทำรายการขาย เพื่อป้องกันการขายเกินสต็อกจริง
+
+183.  **ระบบอ้างอิงใบสั่งซื้อเมื่อรับสินค้า**:
+    * เพิ่ม `string หมายเลขใบสั่งซื้อ` ในคลาส **`รายการรับสินค้า`** เพื่อเชื่อมโยงการรับสินค้ากับการสั่งซื้อที่ทำไว้ก่อนหน้า ทำให้สามารถติดตามสถานะใบสั่งซื้อได้
+
+184.  **ระบบบ่งชี้ว่ามีการยกเลิกสินค้าบางรายการในบิลที่ออกไปแล้ว**:
+    * เพิ่ม `bool มีการยกเลิกบางรายการ` ในคลาส **`ใบเสร็จ`** เพื่อให้สามารถรู้ได้ทันทีว่าบิลนี้เคยมีการแก้ไขหรือยกเลิกรายการไปบางส่วน
+
+185.  **ระบบกำหนดจุดสั่งซื้อสูงสุดสำหรับสินค้า (Maximum Stock Level)**:
+    * เพิ่ม `int จุดสั่งซื้อสูงสุด` ในคลาส **`สินค้า`** เพื่อใช้ในการวางแผนการสั่งซื้อไม่ให้มีสต็อกมากเกินไป
+
+186.  **ระบบจัดการยอดเงินมัดจำ (รับมัดจำ, คืนมัดจำ, สรุปยอดมัดจำในกะ)**:
+    * เพิ่ม `decimal ยอดเงินมัดจำ` ในคลาส **`ใบเสร็จ`** เพื่อบันทึกเงินมัดจำที่ลูกค้าจ่ายไป
+    * เพิ่ม `decimal ยอดเงินมัดจำรับในกะ` และ `decimal ยอดเงินมัดจำคืนในกะ` ในคลาส **`ข้อมูลกะ`** สำหรับการสรุปยอดเงินมัดจำในแต่ละกะ
+    * ฟังก์ชัน **`รับเงินมัดจำ`** สำหรับบันทึกรายการ
+
+187.  **รองรับการแยกบิลขายออนไลน์/หน้าร้าน (Online/Offline Sales)**:
+    * เพิ่ม `bool บิลออนไลน์` และ `string ช่องทางการขาย` ในคลาส **`ใบเสร็จ`** เพื่อแยกประเภทของยอดขายและวิเคราะห์ช่องทาง
+
+188.  **ระบบคำนวณค่าคอมมิชชั่นพนักงานขาย**:
+    * เพิ่ม `decimal ค่าคอมมิชชั่น` (เป็นเปอร์เซ็นต์) ในคลาส **`พนักงาน`**
+    * ฟังก์ชัน **`คำนวณค่าคอมมิชชั่น`** ที่คำนวณจากยอดขายสุทธิของบิล
+
+189.  **ระบบบันทึกช่องทางการตลาดหรือรหัสแคมเปญในบิล**:
+    * เพิ่ม `string รหัสช่องทางการตลาด` และ `string รหัสติดตามแคมเปญ` ในคลาส **`ใบเสร็จ`** เพื่อวิเคราะห์ประสิทธิภาพของแคมเปญการตลาด
+
+190.  **จัดการข้อมูลแบรนด์และรุ่นของสินค้า**:
+    * เพิ่ม `string แบรนด์` และ `string รุ่น` ในคลาส **`สินค้า`** เพื่อข้อมูลสินค้าที่สมบูรณ์ขึ้น
+
+191.  **รองรับการจัดการสินค้าที่มีหลายคุณลักษณะ (เช่น สี, ขนาด) ในสต็อกเดียวกัน**:
+    * สามารถทำได้โดยการใช้ `List<ข้อมูลตัวเลือกสินค้า>` ที่มีอยู่แล้วในคลาส **`สินค้า`** โดยแต่ละ **`ข้อมูลตัวเลือกสินค้า`** จะเก็บ `สต็อกตามตัวเลือก` สำหรับแต่ละคุณสมบัติ
+
+192.  **กำหนดเงื่อนไขเพิ่มเติมสำหรับโปรโมชั่น (เช่น ซื้อ A แถม B, ซื้อครบ X บาท ได้ส่วนลด Y%)**:
+    * เพิ่ม `string เงื่อนไขเพิ่มเติม` ในคลาส **`โปรโมชั่น`** (ต้องมีการเขียน Logic การประมวลผลเงื่อนไขที่ซับซ้อนขึ้น)
+
+193.  **กำหนดว่าโปรโมชั่นสามารถซ้อนทับกันได้หรือไม่ (Stackable Promotions)**:
+    * เพิ่ม `bool ซ้อนทับโปรโมชั่นอื่นได้` ในคลาส **`โปรโมชั่น`** เพื่อให้ระบบรู้ว่าโปรโมชั่นนี้สามารถใช้ร่วมกับโปรโมชั่นอื่นได้หรือไม่
+
+194.  **ระบบจัดการสินค้าที่เป็นชุด (Bundle/Kit) และตัดสต็อกส่วนประกอบ**:
+    * เพิ่มคลาส **`ข้อมูลส่วนประกอบ`** และ `List<ข้อมูลส่วนประกอบ>` ในคลาส **`สินค้า`** สำหรับสินค้าประเภท Bundle
+    * ฟังก์ชัน **`ตัดสต็อกสินค้าชุด`** เพื่อลดสต็อกของส่วนประกอบเมื่อขายสินค้าชุด
+
+195.  **กำหนดส่วนลดสูงสุดต่อรายการสินค้า**:
+    * เพิ่ม `decimal ส่วนลดสูงสุดต่อรายการ` ในคลาส **`สินค้า`** เพื่อจำกัดการให้ส่วนลดสำหรับสินค้าแต่ละชนิด
+
+196.  **บันทึกหมายเหตุพิเศษในบิลสำหรับผู้ดูแลระบบ**:
+    * เพิ่ม `string หมายเหตุพิเศษ` ในคลาส **`ใบเสร็จ`** สำหรับการบันทึกข้อความเฉพาะที่เห็นได้โดยผู้ดูแลระบบ
+
+197.  **ระบบบันทึกวันที่นำเข้าสินค้า (รับเข้าสต็อก)**:
+    * เพิ่ม `DateTime? วันที่นำเข้า` ในคลาส **`สินค้า`** เพื่อติดตามประวัติการนำเข้า
+
+198.  **บันทึกข้อมูลผู้ผลิตสินค้า**:
+    * เพิ่ม `string ผู้ผลิต` ในคลาส **`สินค้า`**
+
+199.  **จัดการข้อมูลสินค้าที่ผู้จัดหาแต่ละรายจัดหาได้**:
+    * เพิ่ม `List<string> สินค้าที่จัดหา` ในคลาส **`ข้อมูลผู้จัดหา`** เพื่อให้ง่ายต่อการเลือกสินค้าเมื่อสร้างใบสั่งซื้อ
+
+200.  **รองรับรหัสสินค้าภายนอก (External Product ID)**:
+    * เพิ่ม `string รหัสสินค้าภายนอก` ในคลาส **`สินค้า`** เพื่อใช้เชื่อมโยงกับระบบภายนอกอื่น ๆ
+
+201.  **บันทึกจำนวนสินค้าบรรจุต่อกล่อง (กรณีขายเป็นกล่อง/แพ็ค)**:
+    * เพิ่ม `int จำนวนบรรจุต่อกล่อง` ในคลาส **`สินค้า`** เพื่อใช้ในการคำนวณสต็อกหรือการขาย
+
+202.  **กำหนดสินค้าที่สามารถกำหนดราคาเองได้ (Open Price Item)**:
+    * เพิ่ม `bool กำหนดเองราคาได้` ในคลาส **`สินค้า`**
+    * ฟังก์ชัน **`เพิ่มสินค้าแบบกำหนดราคาเอง`** สำหรับสินค้าที่ไม่มีราคาตายตัว
+
+203.  **ระบบรองรับการขอใบกำกับภาษีเต็มรูปแบบสำหรับลูกค้า**:
+    * เพิ่ม `bool ออกใบกำกับภาษี` ในคลาส **`ใบเสร็จ`** เพื่อระบุว่าลูกค้าขอใบกำกับภาษี
+    * เพิ่ม `string เลขประจำตัวผู้เสียภาษี` ในคลาส **`ลูกค้า`** เพื่อบันทึกข้อมูลสำหรับออกใบกำกับภาษี
+
+204.  **ระบบจัดการความจุของพื้นที่จัดเก็บสินค้า**:
+    * เพิ่ม `int ความจุสูงสุด` ในคลาส **`พื้นที่จัดเก็บสินค้า`** เพื่อช่วยในการจัดการคลังสินค้า
+
+205.  **ระบบบันทึกประวัติการเคลื่อนไหวสต็อกโดยละเอียด (Stock Movement Log)**:
+    * เพิ่มคลาส **`การเคลื่อนไหวสต็อก`** และ `List<การเคลื่อนไหวสต็อก>` ใน **`ระบบPOS`** เพื่อบันทึกทุกกิจกรรมที่มีผลต่อสต็อกสินค้า
+    * ฟังก์ชัน **`บันทึกการเคลื่อนไหวสต็อก`**
+
+206.  **ระบบจัดการใบสั่งซื้อสินค้า (Purchase Order)**:
+    * เพิ่มคลาส **`รายการสั่งซื้อสินค้า`** และ `List<รายการสั่งซื้อสินค้า>` ใน **`ระบบPOS`** เพื่อจัดการกระบวนการสั่งซื้อสินค้าจากผู้จัดหา
+    * ฟังก์ชัน **`สร้างใบสั่งซื้อ`**
+
+207.  **ระบบแจ้งเตือนเมื่อสินค้าถึงจุดสั่งซื้อ (Reorder Point Alert)**:
+    * ฟังก์ชัน **`แจ้งเตือนสินค้าถึงจุดสั่งซื้อ`** เพื่อแจ้งเตือนสินค้าที่ต้องสั่งซื้อเพิ่ม
+
+208.  **ระบบรายงานสต็อกสินค้าตามพื้นที่จัดเก็บ**:
+    * ฟังก์ชัน **`รายงานสต็อกตามพื้นที่จัดเก็บ`** ที่จัดกลุ่มสินค้าตามตำแหน่งที่จัดเก็บ
+
+209.  **ระบบจัดการผู้จัดหา (เพิ่ม, แก้ไข, ลบ)**:
+    * ฟังก์ชัน **`จัดการผู้จัดหา`** สำหรับการบริหารจัดการข้อมูลผู้จัดหาในระบบ
+
+210.  **ระบบออกรายงานสินค้าขายดี (Top Selling Products)**:
+    * ฟังก์ชัน **`รายงานสินค้าขายดี`** ที่จะรวบรวมและจัดอันดับสินค้าที่มียอดขายสูงสุดในช่วงเวลาที่กำหนด
+
+---
+
+เป็นอย่างไรบ้างครับสำหรับ 30 ฟีเจอร์เพิ่มเติมนี้? มีส่วนไหนที่คุณสนใจเป็นพิเศษหรือต้องการให้ขยายความเพิ่มเติมไหมครับ?
+
+
+แน่นอนครับ! นี่คืออีก 30 ข้อของ Logic และฟีเจอร์เพิ่มเติมสำหรับระบบ POS พร้อมโครงสร้างโค้ด C# .NET ที่มีการปรับปรุงและเพิ่มเข้ามาครับ
+
+---
+
+### โครงสร้างคลาสที่ปรับปรุง (เพิ่มเติม/แก้ไขจากเดิม)
+
+```csharp
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+// การประกาศคลาสพื้นฐานที่มีอยู่แล้ว (เน้นส่วนที่ปรับปรุง/เพิ่มเข้ามา)
+public class สินค้า {
+    public string รหัสสินค้า { get; set; }
+    public string ชื่อสินค้า { get; set; }
+    public decimal ราคาต่อหน่วย { get; set; }
+    public int จำนวนคงเหลือ { get; set; }
+    public string หน่วยนับ { get; set; }
+    public DateTime วันหมดอายุ { get; set; }
+    public decimal ราคาพิเศษสมาชิก { get; set; }
+    public string หมวดหมู่ { get; set; }
+    public decimal อัตราภาษี { get; set; }
+    public bool เป็นสินค้าบริการ { get; set; }
+    public decimal ต้นทุนสินค้า { get; set; }
+    public string สถานะสินค้า { get; set; } // Active, Inactive, Discontinued
+    public int จุดสั่งซื้อ { get; set; }
+    public string รูปภาพสินค้า { get; set; }
+    public List<string> แท็กสินค้า { get; set; }
+    public List<ข้อมูลตัวเลือกสินค้า> ตัวเลือกสินค้า { get; set; }
+    public bool ต้องคิดภาษี { get; set; }
+    public string บาร์โค้ด { get; set; }
+    public int จำนวนขั้นต่ำในการขาย { get; set; }
+    public string คำอธิบายสินค้า { get; set; }
+    public string รหัสหมวดหมู่หลัก { get; set; }
+    public string รหัสหมวดหมู่ย่อย { get; set; }
+    public List<ราคาตามช่วงเวลา> ราคาพิเศษตามช่วงเวลา { get; set; }
+    public string รหัสสินค้าผู้จัดหา { get; set; }
+    public string รหัสพื้นที่จัดเก็บ { get; set; }
+    public decimal น้ำหนักสินค้า { get; set; }
+    public decimal ขนาดกว้าง { get; set; }
+    public decimal ขนาดยาว { get; set; }
+    public decimal ขนาดสูง { get; set; }
+    public bool ขายส่ง { get; set; }
+    public decimal ราคาขายส่ง { get; set; }
+    public bool มีสต็อกติดลบได้ { get; set; }
+    public int จุดสั่งซื้อสูงสุด { get; set; }
+    public string แบรนด์ { get; set; }
+    public string รุ่น { get; set; }
+    public string สี { get; set; }
+    public string ขนาด { get; set; }
+    public List<ข้อมูลส่วนประกอบ> ส่วนประกอบสินค้าชุด { get; set; }
+    public decimal ส่วนลดสูงสุดต่อรายการ { get; set; }
+    public DateTime? วันที่นำเข้า { get; set; }
+    public string ผู้ผลิต { get; set; }
+    public string รหัสสินค้าภายนอก { get; set; }
+    public int จำนวนบรรจุต่อกล่อง { get; set; }
+    public bool กำหนดเองราคาได้ { get; set; }
+    public string บาร์โค้ดเสริม { get; set; } // ข้อ 211
+    public bool เป็นสินค้ามีเลข Serial { get; set; } // ข้อ 212
+    public List<string> เลขSerialที่พร้อมขาย { get; set; } // ข้อ 212
+    public int ระยะเวลารับประกัน (วัน) { get; set; } // ข้อ 213
+    public string เงื่อนไขการรับประกัน { get; set; } // ข้อ 213
+    public string สูตรอาหารหรือส่วนผสม { get; set; } // ข้อ 217
+    public bool ต้องลงทะเบียนสมาชิกก่อนซื้อ { get; set; } // ข้อ 219
+    public DateTime? วันที่ผลิต { get; set; } // ข้อ 220
+    public string มาตรฐานคุณภาพ { get; set; } // ข้อ 221
+    public string รหัสประเภทบัญชีรายได้ { get; set; } // ข้อ 224
+    public string รหัสประเภทบัญชีต้นทุน { get; set; } // ข้อ 224
+}
+
+public class ข้อมูลส่วนประกอบ
+{
+    public string รหัสสินค้าส่วนประกอบ { get; set; }
+    public int จำนวนที่ใช้ { get; set; }
+}
+
+public class ข้อมูลตัวเลือกสินค้า {
+    public string ชื่อตัวเลือก { get; set; }
+    public List<string> ค่าตัวเลือก { get; set; }
+    public Dictionary<string, decimal> ราคาเพิ่มลดตามตัวเลือก { get; set; }
+    public Dictionary<string, int> สต็อกตามตัวเลือก { get; set; }
+}
+
+public class ราคาตามช่วงเวลา
+{
+    public decimal ราคา { get; set; }
+    public DateTime วันที่เริ่มต้น { get; set; }
+    public DateTime วันที่สิ้นสุด { get; set; }
+    public string วันที่ใช้ได้ { get; set; } // เช่น "ทุกวัน", "เฉพาะจันทร์-ศุกร์"
+    public TimeSpan เวลาเริ่มต้น { get; set; }
+    public TimeSpan เวลาสิ้นสุด { get; set; }
+}
+
+public class รายการสินค้าในตะกร้า {
+    public สินค้า สินค้า { get; set; }
+    public int จำนวน { get; set; }
+    public decimal ราคารวมรายการ { get; set; }
+    public decimal ส่วนลดรายการ { get; set; }
+    public string รหัสส่วนลดที่ใช้ { get; set; }
+    public List<string> ตัวเลือกที่เลือก { get; set; }
+    public decimal ราคาที่บันทึกขณะเพิ่ม { get; set; }
+    public decimal ราคาที่ปรับแล้ว { get; set; }
+    public string หมายเหตุรายการ { get; set; }
+    public List<string> เลขSerialที่ขาย { get; set; } // ข้อ 212
+}
+
+public class ใบเสร็จ {
+    public string เลขที่บิล { get; set; }
+    public DateTime วันที่เวลาขาย { get; set; }
+    public List<รายการสินค้าในตะกร้า> รายการสินค้า { get; set; }
+    public decimal ยอดรวมก่อนหักส่วนลด { get; set; }
+    public decimal ส่วนลดรวม { get; set; }
+    public decimal ยอดรวมหลังหักส่วนลด { get; set; }
+    public decimal ภาษีมูลค่าเพิ่ม { get; set; }
+    public decimal ยอดสุทธิที่ต้องชำระ { get; set; }
+    public string ช่องทางการชำระเงิน { get; set; }
+    public decimal ยอดเงินที่รับมา { get; set; }
+    public decimal เงินทอน { get; set; }
+    public ลูกค้า ข้อมูลลูกค้า { get; set; }
+    public พนักงาน ข้อมูลพนักงานขาย { get; set; }
+    public string สถานะบิล { get; set; }
+    public string หมายเหตุ { get; set; }
+    public decimal ค่าจัดส่ง { get; set; }
+    public string รหัสกะที่ขาย { get; set; }
+    public string หมายเลขเครื่อง POS { get; set; }
+    public string หมายเลขลูกค้าอ้างอิง { get; set; }
+    public decimal คะแนนสะสมที่ใช้ { get; set; }
+    public string วิธีการจัดส่ง { get; set; }
+    public DateTime? กำหนดส่งมอบ { get; set; }
+    public string หมายเหตุการยกเลิก { get; set; }
+    public Dictionary<string, decimal> การชำระเงินแยกส่วน { get; set; }
+    public string เลขที่อ้างอิงการทำรายการ { get; set; }
+    public string รหัสโปรโมชั่นที่ใช้ { get; set; }
+    public string รหัสอ้างอิงการรับชำระ { get; set; }
+    public string สถานะการจัดส่ง { get; set; }
+    public string รหัสไปรษณีย์จัดส่ง { get; set; }
+    public string ที่อยู่จัดส่งเต็ม { get; set; }
+    public string รหัสผู้ดูแลที่อนุมัติ { get; set; }
+    public decimal ค่าธรรมเนียมบัตรเครดิต { get; set; }
+    public string ประเภทบิล { get; set; }
+    public string เลขที่บิลอ้างอิง { get; set; }
+    public string รหัสโปรโมชั่นที่ใช้ในบิล { get; set; }
+    public string รหัสคูปองที่ใช้ในบิล { get; set; }
+    public string สาขาที่ทำรายการ { get; set; }
+    public bool มีการยกเลิกบางรายการ { get; set; }
+    public decimal ยอดเงินมัดจำ { get; set; }
+    public bool บิลออนไลน์ { get; set; }
+    public string ช่องทางการขาย { get; set; }
+    public string รหัสตัวแทนขาย { get; set; }
+    public string รหัสช่องทางการตลาด { get; set; }
+    public string รหัสติดตามแคมเปญ { get; set; }
+    public string หมายเหตุพิเศษ { get; set; }
+    public bool ออกใบกำกับภาษี { get; set; }
+    public string รหัสอ้างอิงการจอง/นัดหมาย { get; set; } // ข้อ 214
+    public DateTime? วันที่ส่งเอกสาร (สำหรับรับประกัน) { get; set; } // ข้อ 213
+    public string ประเภทลูกค้า ณ เวลาที่ซื้อ { get; set; } // ข้อ 219
+    public string รหัสอ้างอิงการส่งสินค้า { get; set; } // ข้อ 223
+    public string รหัสแผนกบัญชีรายได้ { get; set; } // ข้อ 224
+}
+
+public class ลูกค้า {
+    public string รหัสลูกค้า { get; set; }
+    public string ชื่อลูกค้า { get; set; }
+    public int แต้มสะสม { get; set; }
+    public List<ใบเสร็จ> ประวัติการซื้อ { get; set; }
+    public decimal วงเงินเครดิตคงเหลือ { get; set; }
+    public string เบอร์โทรศัพท์ { get; set; }
+    public string อีเมล { get; set; }
+    public string ที่อยู่ { get; set; }
+    public DateTime วันเกิด { get; set; }
+    public string ประเภทลูกค้า { get; set; } // เช่น "ทั่วไป", "สมาชิก", "VIP", "ลูกค้าองค์กร"
+    public string รหัสสมาชิกภายนอก { get; set; }
+    public DateTime วันที่สมัครสมาชิก { get; set; }
+    public bool สถานะการเป็นสมาชิก { get; set; } // Active, Inactive
+    public string เลขประจำตัวผู้เสียภาษี { get; set; }
+    public List<ที่อยู่จัดส่ง> ที่อยู่จัดส่งอื่นๆ { get; set; } // ข้อ 215
+    public string รหัสภาษีลูกค้า { get; set; } // ข้อ 225
+}
+
+public class ที่อยู่จัดส่ง // ข้อ 215
+{
+    public string ชื่อผู้รับ { get; set; }
+    public string เบอร์โทรศัพท์ { get; set; }
+    public string ที่อยู่เต็ม { get; set; }
+    public string รหัสไปรษณีย์ { get; set; }
+    public string จังหวัด { get; set; }
+    public string อำเภอ { get; set; }
+    public string ตำบล { get; set; }
+    public bool เป็นที่อยู่หลัก { get; set; }
+}
+
+public class พนักงาน {
+    public string รหัสพนักงาน { get; set; }
+    public string ชื่อพนักงาน { get; set; }
+    public string รหัสผ่าน { get; set; }
+    public string สิทธิ์การใช้งาน { get; set; } // Admin, Manager, Cashier, Stocker
+    public string แผนก { get; set; }
+    public bool สามารถปรับเปลี่ยนราคาได้ { get; set; }
+    public DateTime วันที่เข้าทำงาน { get; set; }
+    public decimal ค่าคอมมิชชั่น { get; set; }
+    public string รหัสแผนกบัญชี { get; set; } // ข้อ 224
+}
+
+public class โปรโมชั่น {
+    public string รหัสโปรโมชั่น { get; set; }
+    public string ชื่อโปรโมชั่น { get; set; }
+    public string ประเภทโปรโมชั่น { get; set; } // เช่น "ส่วนลดเป็น %", "ส่วนลดเป็นบาท", "ซื้อ X แถม Y"
+    public Func<List<รายการสินค้าในตะกร้า>, List<รายการสินค้าในตะกร้า>> คำนวณส่วนลดโปรโมชั่น { get; set; }
+    public DateTime วันที่เริ่มต้น { get; set; }
+    public DateTime วันที่สิ้นสุด { get; set; }
+    public decimal ยอดซื้อขั้นต่ำ { get; set; }
+    public List<string> สินค้าที่ร่วมรายการ { get; set; }
+    public List<string> สินค้าที่ไม่ร่วมรายการ { get; set; }
+    public int จำนวนครั้งที่ใช้ได้ { get; set; }
+    public int จำนวนครั้งที่ใช้ไปแล้ว { get; set; }
+    public List<string> สาขาที่ร่วมรายการ { get; set; }
+    public bool ใช้ได้กับราคาปกติเท่านั้น { get; set; }
+    public string เงื่อนไขเพิ่มเติม { get; set; }
+    public bool ซ้อนทับโปรโมชั่นอื่นได้ { get; set; }
+    public List<string> กลุ่มลูกค้าที่ร่วมรายการ { get; set; } // ข้อ 219
+}
+
+public class คูปอง {
+    public string รหัสคูปอง { get; set; }
+    public decimal มูลค่าส่วนลด { get; set; }
+    public DateTime วันหมดอายุ { get; set; }
+    public bool ใช้งานแล้ว { get; set; }
+    public int จำนวนครั้งที่ใช้ได้ { get; set; }
+    public int จำนวนครั้งที่ใช้งานไปแล้ว { get; set; }
+    public string ประเภทคูปอง { get; set; }
+    public decimal เงื่อนไขยอดซื้อขั้นต่ำ { get; set; }
+    public bool สามารถใช้ได้หลายครั้ง { get; set; }
+    public List<string> สินค้าที่ร่วมรายการ { get; set; }
+}
+
+public class ข้อมูลกะ
+{
+    public string รหัสกะ { get; set; }
+    public DateTime เวลาเปิดกะ { get; set; }
+    public DateTime? เวลาปิดกะ { get; set; }
+    public พนักงาน พนักงานเปิดกะ { get; set; }
+    public พนักงาน พนักงานปิดกะ { get; set; }
+    public decimal ยอดขายเงินสด { get; set; }
+    public decimal ยอดขายบัตรเครดิต { get; set; }
+    public decimal ยอดรวมในกะ { get; set; }
+    public decimal เงินสดเริ่มต้นกะ { get; set; }
+    public decimal เงินสดปิดกะ { get; set; }
+    public decimal เงินเบิกจ่ายในกะ { get; set; }
+    public List<ใบเสร็จ> บิลที่ขายในกะ { get; set; }
+    public decimal ยอดรวมรับชำระ { get; set; }
+    public decimal ยอดรวมคืนเงิน { get; set; }
+    public int จำนวนบิลที่ออก { get; set; }
+    public int จำนวนบิลที่ยกเลิก { get; set; }
+    public decimal ยอดเงินมัดจำรับในกะ { get; set; }
+    public decimal ยอดเงินมัดจำคืนในกะ { get; set; }
+    public List<รายงานการเคลียร์ลิ้นชัก> ประวัติการเคลียร์ลิ้นชัก { get; set; } // ข้อ 216
+}
+
+public class รายงานการเคลียร์ลิ้นชัก // ข้อ 216
+{
+    public DateTime เวลาเคลียร์ { get; set; }
+    public พนักงาน ผู้ทำรายการ { get; set; }
+    public decimal จำนวนเงินที่เคลียร์ { get; set; }
+    public decimal จำนวนเงินในลิ้นชักก่อนเคลียร์ { get; set; }
+    public string หมายเหตุ { get; set; }
+}
+
+public class ข้อมูลผู้จัดหา {
+    public string รหัสผู้จัดหา { get; set; }
+    public string ชื่อผู้จัดหา { get; set; }
+    public string เบอร์โทรศัพท์ { get; set; }
+    public string ที่อยู่ { get; set; }
+    public List<string> สินค้าที่จัดหา { get; set; }
+}
+
+public class รายการรับสินค้า {
+    public string เลขที่รับสินค้า { get; set; }
+    public DateTime วันที่รับ { get; set; }
+    public ข้อมูลผู้จัดหา ผู้จัดหา { get; set; }
+    public List<สินค้า> รายการสินค้าที่รับ { get; set; }
+    public พนักงาน ผู้รับสินค้า { get; set; }
+    public string หมายเหตุ { get; set; }
+    public string สถานะการรับสินค้า { get; set; }
+    public string หมายเลขใบสั่งซื้อ { get; set; }
+}
+
+public class ใบเสนอราคา {
+    public string เลขที่ใบเสนอราคา { get; set; }
+    public DateTime วันที่สร้าง { get; set; }
+    public ลูกค้า ข้อมูลลูกค้า { get; set; }
+    public List<รายการสินค้าในตะกร้า> รายการสินค้า { get; set; }
+    public decimal ยอดรวมสุทธิ { get; set; }
+    public DateTime วันหมดอายุใบเสนอราคา { get; set; }
+    public string สถานะ { get; set; } // Pending, Accepted, Rejected, Converted to Sale
+    public string รหัสพนักงานที่สร้าง { get; set; }
+    public DateTime? วันที่อนุมัติ { get; set; } // ข้อ 226
+    public พนักงาน ผู้ดูแลที่อนุมัติ { get; set; } // ข้อ 226
+    public string หมายเหตุการอนุมัติ { get; set; } // ข้อ 226
+    public string รหัสภาษีที่ใช้ { get; set; } // ข้อ 225
+}
+
+public class รายการคืนสินค้า
+{
+    public string เลขที่คืนสินค้า { get; set; }
+    public string เลขที่บิลต้นฉบับ { get; set; }
+    public DateTime วันที่คืน { get; set; }
+    public ลูกค้า ลูกค้าผู้คืน { get; set; }
+    public List<รายการสินค้าในตะกร้า> รายการสินค้าที่คืน { get; set; }
+    public decimal จำนวนเงินที่คืน { get; set; }
+    public พนักงาน พนักงานผู้ทำรายการ { get; set; }
+    public string เหตุผลการคืน { get; set; }
+    public bool คืนเข้าสต็อก { get; set; }
+    public string หมายเหตุการคืน { get; set; } // ข้อ 227
+}
+
+public class พื้นที่จัดเก็บสินค้า
+{
+    public string รหัสพื้นที่ { get; set; }
+    public string ชื่อพื้นที่ { get; set; }
+    public string รายละเอียด { get; set; }
+    public int ความจุสูงสุด { get; set; }
+}
+
+public class การเคลื่อนไหวสต็อก
+{
+    public DateTime วันที่ { get; set; }
+    public string รหัสสินค้า { get; set; }
+    public string ประเภทการเคลื่อนไหว { get; set; } // "รับเข้า", "ขายออก", "ปรับปรุง", "คืนเข้า", "โอนออก", "โอนเข้า"
+    public int จำนวน { get; set; }
+    public พนักงาน ผู้ทำรายการ { get; set; }
+    public string เลขที่เอกสารอ้างอิง { get; set; }
+    public string เหตุผล { get; set; }
+    public string รหัสคลังสินค้าต้นทาง { get; set; } // ข้อ 228
+    public string รหัสคลังสินค้าปลายทาง { get; set; } // ข้อ 228
+}
+
+public class รายการสั่งซื้อสินค้า
+{
+    public string เลขที่ใบสั่งซื้อ { get; set; }
+    public DateTime วันที่สร้าง { get; set; }
+    public ข้อมูลผู้จัดหา ผู้จัดหา { get; set; }
+    public List<Tuple<สินค้า, int>> รายการสินค้าที่สั่ง { get; set; }
+    public decimal ยอดรวมที่สั่ง { get; set; }
+    public string สถานะใบสั่งซื้อ { get; set; }
+    public DateTime? กำหนดรับสินค้า { get; set; }
+    public พนักงาน ผู้สร้าง { get; set; }
+    public DateTime? วันที่อนุมัติ { get; set; } // ข้อ 226
+    public พนักงาน ผู้ดูแลที่อนุมัติ { get; set; } // ข้อ 226
+    public string หมายเหตุการอนุมัติ { get; set; } // ข้อ 226
+    public string วิธีการจัดส่งสินค้า (จากผู้จัดหา) { get; set; } // ข้อ 229
+    public DateTime? วันที่ส่งสินค้าจริง (จากผู้จัดหา) { get; set; } // ข้อ 229
+}
+
+public class ข้อมูลคลังสินค้า // ข้อ 228
+{
+    public string รหัสคลังสินค้า { get; set; }
+    public string ชื่อคลังสินค้า { get; set; }
+    public string ที่อยู่คลังสินค้า { get; set; }
+}
+
+public class POS_Setting // ข้อ 230
+{
+    public string ชื่อร้าน { get; set; }
+    public string ที่อยู่ร้าน { get; set; }
+    public string เบอร์โทรศัพท์ร้าน { get; set; }
+    public string เลขประจำตัวผู้เสียภาษีร้าน { get; set; }
+    public string ข้อความท้ายใบเสร็จ { get; set; }
+    public bool เปิดใช้งานระบบสะสมแต้ม { get; set; }
+    public decimal อัตราการสะสมแต้ม { get; set; }
+    public bool อนุญาตให้สต็อกติดลบได้ (ตั้งค่าเริ่มต้น) { get; set; }
+    public string สกุลเงินหลัก { get; set; }
+    public string รูปแบบวันที่ { get; set; }
+    public string รูปแบบเวลา { get; set; }
+    public int ระยะเวลาเก็บประวัติการขาย (วัน) { get; set; }
+    public string รหัสเครื่องพิมพ์ใบเสร็จ { get; set; }
+    public bool พิมพ์ใบเสร็จอัตโนมัติ { get; set; }
+    public bool ใช้ระบบอนุมัติส่วนลด { get; set; }
+    public bool แสดงต้นทุนสินค้าบนหน้าจอ POS (สำหรับผู้ดูแล) { get; set; }
+}
+
+public class POS_AuditLog // ข้อ 231
+{
+    public DateTime เวลาเกิดเหตุการณ์ { get; set; }
+    public พนักงาน พนักงานผู้ทำ { get; set; }
+    public string ประเภทเหตุการณ์ { get; set; } // "Login", "Logout", "Void Sale", "Price Change", "Stock Adjustment"
+    public string รายละเอียดเหตุการณ์ { get; set; }
+    public string รหัสอ้างอิง { get; set; } // เช่น เลขที่บิล, รหัสสินค้า
+}
+
+public class รายการชำระเงิน // ข้อ 232
+{
+    public string รหัสการชำระเงิน { get; set; }
+    public string ช่องทางการชำระ { get; set; }
+    public decimal จำนวนเงิน { get; set; }
+    public string สถานะ { get; set; } // "สำเร็จ", "ไม่สำเร็จ", "คืนเงิน"
+    public DateTime วันที่เวลาชำระ { get; set; }
+    public string เลขที่อ้างอิงจากธนาคาร/บริการ { get; set; }
+    public string รหัสบิลที่เกี่ยวข้อง { get; set; }
+}
+
+public class POS_SubscriptionService // ข้อ 233
+{
+    public string รหัสบริการ { get; set; }
+    public string ชื่อบริการ { get; set; }
+    public decimal ราคาต่อรอบ { get; set; }
+    public string รอบการคิดค่าบริการ { get; set; } // "รายเดือน", "รายปี"
+    public DateTime วันที่เริ่มต้น { get; set; }
+    public DateTime? วันที่สิ้นสุด { get; set; }
+    public ลูกค้า ลูกค้าผู้ใช้บริการ { get; set; }
+    public string สถานะ { get; set; } // "Active", "Cancelled", "Expired"
+    public DateTime? วันที่เรียกเก็บเงินรอบถัดไป { get; set; }
+}
+
+public class ระบบPOS
+{
+    private List<สินค้า> คลังสินค้า;
+    private List<รายการสินค้าในตะกร้า> ตะกร้าสินค้า;
+    private List<ใบเสร็จ> ประวัติการขาย;
+    private List<ลูกค้า> ฐานข้อมูลลูกค้า;
+    private List<พนักงาน> ฐานข้อมูลพนักงาน;
+    private List<โปรโมชั่น> รายการโปรโมชั่น;
+    private List<คูปอง> รายการคูปอง;
+    private List<ข้อมูลกะ> ประวัติกะขาย;
+    private List<ข้อมูลผู้จัดหา> ฐานข้อมูลผู้จัดหา;
+    private List<รายการรับสินค้า> ประวัติการรับสินค้า;
+    private List<ใบเสนอราคา> รายการใบเสนอราคา;
+    private List<string> หมวดหมู่สินค้าทั้งหมด;
+    private List<รายการคืนสินค้า> ประวัติการคืนสินค้า;
+    private List<พื้นที่จัดเก็บสินค้า> พื้นที่จัดเก็บสินค้าทั้งหมด;
+    private List<การเคลื่อนไหวสต็อก> ประวัติการเคลื่อนไหวสต็อก;
+    private List<รายการสั่งซื้อสินค้า> รายการสั่งซื้อสินค้าทั้งหมด;
+    private List<ข้อมูลคลังสินค้า> คลังสินค้าทั้งหมด; // ข้อ 228
+    private POS_Setting การตั้งค่าระบบ; // ข้อ 230
+    private List<POS_AuditLog> AuditLogs; // ข้อ 231
+    private List<รายการชำระเงิน> ประวัติการชำระเงิน; // ข้อ 232
+    private List<POS_SubscriptionService> รายการบริการสมัครสมาชิก; // ข้อ 233
+
+    private พนักงาน พนักงานที่เข้าสู่ระบบปัจจุบัน;
+    private string คลังสินค้าปัจจุบัน;
+    private ข้อมูลกะ กะปัจจุบัน;
+
+    public ระบบPOS()
+    {
+        คลังสินค้า = new List<สินค้า>();
+        ตะกร้าสินค้า = new List<รายการสินค้าในตะกร้า>();
+        ประวัติการขาย = new List<ใบเสร็จ>();
+        ฐานข้อมูลลูกค้า = new List<ลูกค้า>();
+        ฐานข้อมูลพนักงาน = new List<พนักงาน>();
+        รายการโปรโมชั่น = new List<โปรโมชั่น>();
+        รายการคูปอง = new List<คูปอง>();
+        ประวัติกะขาย = new List<ข้อมูลกะ>();
+        ฐานข้อมูลผู้จัดหา = new List<ข้อมูลผู้จัดหา>();
+        ประวัติการรับสินค้า = new List<รายการรับสินค้า>();
+        รายการใบเสนอราคา = new List<ใบเสนอราคา>();
+        หมวดหมู่สินค้าทั้งหมด = new List<string>();
+        ประวัติการคืนสินค้า = new List<รายการคืนสินค้า>();
+        พื้นที่จัดเก็บสินค้าทั้งหมด = new List<พื้นที่จัดเก็บสินค้า>();
+        ประวัติการเคลื่อนไหวสต็อก = new List<การเคลื่อนไหวสต็อก>();
+        รายการสั่งซื้อสินค้าทั้งหมด = new List<รายการสั่งซื้อสินค้า>();
+        คลังสินค้าทั้งหมด = new List<ข้อมูลคลังสินค้า>();
+        AuditLogs = new List<POS_AuditLog>();
+        ประวัติการชำระเงิน = new List<รายการชำระเงิน>();
+        รายการบริการสมัครสมาชิก = new List<POS_SubscriptionService>();
+
+        การตั้งค่าระบบ = new POS_Setting // ตั้งค่าเริ่มต้น
+        {
+            ชื่อร้าน = "ร้านสะดวกซื้อ",
+            ที่อยู่ร้าน = "123 ถนนสุขสบาย, กรุงเทพฯ",
+            เบอร์โทรศัพท์ร้าน = "02-123-4567",
+            เลขประจำตัวผู้เสียภาษีร้าน = "1234567890123",
+            ข้อความท้ายใบเสร็จ = "ขอบคุณที่มาอุดหนุน!",
+            เปิดใช้งานระบบสะสมแต้ม = true,
+            อัตราการสะสมแต้ม = 1.0m, // 1 บาท ได้ 1 แต้ม
+            อนุญาตให้สต็อกติดลบได้ (ตั้งค่าเริ่มต้น) = false,
+            สกุลเงินหลัก = "THB",
+            รูปแบบวันที่ = "dd/MM/yyyy",
+            รูปแบบเวลา = "HH:mm:ss",
+            ระยะเวลาเก็บประวัติการขาย (วัน) = 365 * 5,
+            รหัสเครื่องพิมพ์ใบเสร็จ = "Printer001",
+            พิมพ์ใบเสร็จอัตโนมัติ = true,
+            ใช้ระบบอนุมัติส่วนลด = true,
+            แสดงต้นทุนสินค้าบนหน้าจอ POS (สำหรับผู้ดูแล) = false
+        };
+
+        คลังสินค้าปัจจุบัน = "คลังหลัก";
+
+        // ตัวอย่างข้อมูลเริ่มต้น
+        ฐานข้อมูลพนักงาน.Add(new พนักงาน { รหัสพนักงาน = "EMP001", ชื่อพนักงาน = "แอดมิน", รหัสผ่าน = "admin123", สิทธิ์การใช้งาน = "Admin", สามารถปรับเปลี่ยนราคาได้ = true });
+        ฐานข้อมูลพนักงาน.Add(new พนักงาน { รหัสพนักงาน = "EMP002", ชื่อพนักงาน = "แคชเชียร์", รหัสผ่าน = "cashier123", สิทธิ์การใช้งาน = "Cashier", สามารถปรับเปลี่ยนราคาได้ = false });
+        หมวดหมู่สินค้าทั้งหมด.Add("อาหาร");
+        หมวดหมู่สินค้าทั้งหมด.Add("เครื่องดื่ม");
+        พื้นที่จัดเก็บสินค้าทั้งหมด.Add(new พื้นที่จัดเก็บสินค้า { รหัสพื้นที่ = "A1", ชื่อพื้นที่ = "ชั้นวาง A1", รายละเอียด = "สินค้าทั่วไป" });
+        คลังสินค้าทั้งหมด.Add(new ข้อมูลคลังสินค้า { รหัสคลังสินค้า = "MAIN", ชื่อคลังสินค้า = "คลังหลัก", ที่อยู่คลังสินค้า = "ที่ตั้งร้าน" });
+
+        // เพิ่มสินค้าตัวอย่าง
+        คลังสินค้า.Add(new สินค้า { รหัสสินค้า = "P001", ชื่อสินค้า = "เครื่องดูดฝุ่น", ราคาต่อหน่วย = 1500m, จำนวนคงเหลือ = 5, หน่วยนับ = "เครื่อง", เป็นสินค้ามีเลข Serial = true, เลขSerialที่พร้อมขาย = new List<string> { "SN001", "SN002", "SN003", "SN004", "SN005" }, ระยะเวลารับประกัน = 365, เงื่อนไขการรับประกัน = "ตามเงื่อนไขบริษัท" });
+        คลังสินค้า.Add(new สินค้า { รหัสสินค้า = "P002", ชื่อสินค้า = "น้ำอัดลม", ราคาต่อหน่วย = 20m, จำนวนคงเหลือ = 100, หน่วยนับ = "ขวด", มีสต็อกติดลบได้ = true });
+    }
+
+    // --- 211. รองรับบาร์โค้ดเสริม/หลายบาร์โค้ดต่อ 1 สินค้า
+    // เพิ่ม `string บาร์โค้ดเสริม` (หรือ List<string>) ในคลาส `สินค้า`
+    public สินค้า ค้นหาสินค้าด้วยบาร์โค้ด(string บาร์โค้ดที่สแกน)
+    {
+        return คลังสินค้า.FirstOrDefault(s => s.บาร์โค้ด == บาร์โค้ดที่สแกน || s.บาร์โค้ดเสริม == บาร์โค้ดที่สแกน);
+    }
+
+    // --- 212. ระบบจัดการสินค้าที่มีเลข Serial Number (ติดตามได้แต่ละชิ้น)
+    // เพิ่ม `bool เป็นสินค้ามีเลข Serial`, `List<string> เลขSerialที่พร้อมขาย` ใน `สินค้า`
+    // เพิ่ม `List<string> เลขSerialที่ขาย` ใน `รายการสินค้าในตะกร้า`
+    public void เพิ่มสินค้ามีSerialเข้าตะกร้า(สินค้า สินค้า, string เลขSerial)
+    {
+        if (สินค้า.เป็นสินค้ามีเลขSerial && สินค้า.เลขSerialที่พร้อมขาย.Contains(เลขSerial))
+        {
+            var รายการ = ตะกร้าสินค้า.FirstOrDefault(i => i.สินค้า.รหัสสินค้า == สินค้า.รหัสสินค้า && i.เลขSerialที่ขาย != null && i.เลขSerialที่ขาย.Contains(เลขSerial));
+            if (รายการ == null)
+            {
+                ตะกร้าสินค้า.Add(new รายการสินค้าในตะกร้า
+                {
+                    สินค้า = สินค้า,
+                    จำนวน = 1,
+                    ราคารวมรายการ = สินค้า.ราคาต่อหน่วย,
+                    ราคาที่บันทึกขณะเพิ่ม = สินค้า.ราคาต่อหน่วย,
+                    ราคาที่ปรับแล้ว = สินค้า.ราคาต่อหน่วย,
+                    เลขSerialที่ขาย = new List<string> { เลขSerial }
+                });
+                สินค้า.เลขSerialที่พร้อมขาย.Remove(เลขSerial); // ลบจากสต็อกพร้อมขาย
+                Console.WriteLine($"เพิ่มสินค้า {สินค้า.ชื่อสินค้า} (SN: {เลขSerial}) เข้าตะกร้า");
+            }
+            else
+            {
+                Console.WriteLine($"เลข Serial {เลขSerial} นี้ถูกเพิ่มในตะกร้าแล้ว");
+            }
+        }
+        else if (สินค้า.เป็นสินค้ามีเลขSerial)
+        {
+            Console.WriteLine($"เลข Serial {เลขSerial} ไม่ถูกต้องหรือไม่พร้อมขายสำหรับสินค้า {สินค้า.ชื่อสินค้า}");
+        }
+        else
+        {
+            Console.WriteLine($"สินค้า {สินค้า.ชื่อสินค้า} ไม่ใช่สินค้าแบบมี Serial Number");
+        }
+    }
+
+    // --- 213. ระบบจัดการระยะเวลาและเงื่อนไขการรับประกันสินค้า
+    // เพิ่ม `int ระยะเวลารับประกัน (วัน)`, `string เงื่อนไขการรับประกัน` ใน `สินค้า`
+    // เพิ่ม `DateTime? วันที่ส่งเอกสาร (สำหรับรับประกัน)` ใน `ใบเสร็จ` (เมื่อสินค้าถูกขายไปพร้อม Serial)
+    public DateTime? คำนวณวันสิ้นสุดรับประกัน(ใบเสร็จ บิล, รายการสินค้าในตะกร้า รายการ)
+    {
+        if (รายการ.สินค้า.เป็นสินค้ามีเลขSerial && รายการ.สินค้า.ระยะเวลารับประกัน > 0)
+        {
+            return บิล.วันที่เวลาขาย.AddDays(รายการ.สินค้า.ระยะเวลารับประกัน);
+        }
+        return null;
+    }
+
+    // --- 214. เชื่อมโยงบิลขายกับการจอง/นัดหมาย
+    // เพิ่ม `string รหัสอ้างอิงการจอง/นัดหมาย` ใน `ใบเสร็จ`
+
+    // --- 215. ระบบจัดการที่อยู่จัดส่งหลายที่สำหรับลูกค้า 1 คน
+    // เพิ่มคลาส `ที่อยู่จัดส่ง` และ `List<ที่อยู่จัดส่ง>` ใน `ลูกค้า`
+    public void เพิ่มที่อยู่จัดส่งให้ลูกค้า(ลูกค้า ลูกค้า, ที่อยู่จัดส่ง ที่อยู่ใหม่)
+    {
+        if (ลูกค้า.ที่อยู่จัดส่งอื่นๆ == null) ลูกค้า.ที่อยู่จัดส่งอื่นๆ = new List<ที่อยู่จัดส่ง>();
+        ลูกค้า.ที่อยู่จัดส่งอื่นๆ.Add(ที่อยู่ใหม่);
+        Console.WriteLine($"เพิ่มที่อยู่จัดส่งใหม่ให้ลูกค้า {ลูกค้า.ชื่อลูกค้า}");
+    }
+
+    // --- 216. ระบบบันทึกการเคลียร์ลิ้นชัก (Cash Drawer Reconciliation)
+    // เพิ่มคลาส `รายงานการเคลียร์ลิ้นชัก` และ `List<รายงานการเคลียร์ลิ้นชัก>` ใน `ข้อมูลกะ`
+    public void เคลียร์ลิ้นชัก(พนักงาน ผู้ทำรายการ, decimal จำนวนเงินที่เคลียร์, string หมายเหตุ = "")
+    {
+        if (กะปัจจุบัน != null)
+        {
+            กะปัจจุบัน.ประวัติการเคลียร์ลิ้นชัก.Add(new รายงานการเคลียร์ลิ้นชัก
+            {
+                เวลาเคลียร์ = DateTime.Now,
+                ผู้ทำรายการ = ผู้ทำรายการ,
+                จำนวนเงินที่เคลียร์ = จำนวนเงินที่เคลียร์,
+                จำนวนเงินในลิ้นชักก่อนเคลียร์ = กะปัจจุบัน.เงินสดปิดกะ, // ควรเป็นยอดเงินสดปัจจุบันในลิ้นชัก
+                หมายเหตุ = หมายเหตุ
+            });
+            กะปัจจุบัน.เงินสดปิดกะ -= จำนวนเงินที่เคลียร์; // ลดเงินสดในลิ้นชักที่เคลียร์ออกไป
+            Console.WriteLine($"เคลียร์ลิ้นชักโดย {ผู้ทำรายการ.ชื่อพนักงาน} จำนวน {จำนวนเงินที่เคลียร์:N2} บาท");
+        }
+        else
+        {
+            Console.WriteLine("ไม่มีกะเปิดอยู่ ไม่สามารถเคลียร์ลิ้นชักได้");
+        }
+    }
+
+    // --- 217. ระบบจัดการสูตรอาหาร/ส่วนผสมสำหรับสินค้าที่ผลิตเอง
+    // เพิ่ม `string สูตรอาหารหรือส่วนผสม` (อาจจะใช้เป็นโครงสร้างข้อมูลที่ซับซ้อนกว่านี้) ในคลาส `สินค้า`
+    public void แสดงสูตรอาหาร(สินค้า สินค้า)
+    {
+        if (!string.IsNullOrEmpty(สินค้า.สูตรอาหารหรือส่วนผสม))
+        {
+            Console.WriteLine($"สูตร/ส่วนผสมของ {สินค้า.ชื่อสินค้า}: {สินค้า.สูตรอาหารหรือส่วนผสม}");
+        }
+        else
+        {
+            Console.WriteLine($"สินค้า {สินค้า.ชื่อสินค้า} ไม่มีข้อมูลสูตรอาหาร/ส่วนผสม");
+        }
+    }
+
+    // --- 218. ระบบแจ้งเตือนเมื่อสินค้าใกล้หมดอายุ (Product Expiry Alert)
+    public List<สินค้า> แจ้งเตือนสินค้าใกล้หมดอายุ(int จำนวนวันล่วงหน้า)
+    {
+        return คลังสินค้า.Where(s => s.วันหมดอายุ != DateTime.MinValue && s.วันหมดอายุ <= DateTime.Today.AddDays(จำนวนวันล่วงหน้า) && s.จำนวนคงเหลือ > 0).ToList();
+    }
+
+    // --- 219. กำหนดเงื่อนไขการร่วมโปรโมชั่นตามประเภทสมาชิก/กลุ่มลูกค้า
+    // เพิ่ม `List<string> กลุ่มลูกค้าที่ร่วมรายการ` ในคลาส `โปรโมชั่น`
+    // เพิ่ม `string ประเภทลูกค้า ณ เวลาที่ซื้อ` ใน `ใบเสร็จ` (บันทึกประเภทลูกค้าตอนทำรายการ)
+
+    // --- 220. บันทึกวันที่ผลิตสินค้า
+    // เพิ่ม `DateTime? วันที่ผลิต` ในคลาส `สินค้า`
+
+    // --- 221. บันทึกมาตรฐานคุณภาพ/ใบรับรองของสินค้า
+    // เพิ่ม `string มาตรฐานคุณภาพ` ในคลาส `สินค้า`
+
+    // --- 222. ระบบรองรับการเปิดหลายกะพร้อมกัน (Multi-Shift Operations)
+    // ระบบปัจจุบันรองรับได้แค่กะเดียวต่อ POS Machine ในการออกแบบนี้ หากต้องการ Multi-shift ต้องใช้ DB และแยก logic การทำงานให้ชัดเจนขึ้น
+
+    // --- 223. ระบบอ้างอิงเลขที่การส่งสินค้า (Shipping Tracking Number)
+    // เพิ่ม `string รหัสอ้างอิงการส่งสินค้า` ใน `ใบเสร็จ`
+
+    // --- 224. ระบบเชื่อมโยงกับบัญชีแยกประเภท (General Ledger Account Mapping)
+    // เพิ่ม `string รหัสประเภทบัญชีรายได้`, `string รหัสประเภทบัญชีต้นทุน` ใน `สินค้า`
+    // เพิ่ม `string รหัสแผนกบัญชี` ใน `พนักงาน`
+    // เพิ่ม `string รหัสแผนกบัญชีรายได้` ใน `ใบเสร็จ` (เมื่อทำรายการขาย)
+
+    // --- 225. ระบบจัดการรหัสภาษีสำหรับลูกค้า (Customer Tax ID/Group) และนำไปใช้ในบิล
+    // เพิ่ม `string รหัสภาษีลูกค้า` ในคลาส `ลูกค้า`
+    // เพิ่ม `string รหัสภาษีที่ใช้` ในคลาส `ใบเสนอราคา`
+
+    // --- 226. ระบบอนุมัติเอกสาร (ใบเสนอราคา, ใบสั่งซื้อ) โดยผู้จัดการ
+    // เพิ่ม `DateTime? วันที่อนุมัติ`, `พนักงาน ผู้ดูแลที่อนุมัติ`, `string หมายเหตุการอนุมัติ` ในคลาส `ใบเสนอราคา` และ `รายการสั่งซื้อสินค้า`
+
+    // --- 227. ระบบบันทึกหมายเหตุการคืนสินค้า
+    // เพิ่ม `string หมายเหตุการคืน` ในคลาส `รายการคืนสินค้า`
+
+    // --- 228. ระบบจัดการหลายคลังสินค้า (Multi-Warehouse Inventory)
+    // เพิ่มคลาส `ข้อมูลคลังสินค้า` และ `List<ข้อมูลคลังสินค้า>` ใน `ระบบPOS`
+    // เพิ่ม `string รหัสคลังสินค้าต้นทาง`, `string รหัสคลังสินค้าปลายทาง` ใน `การเคลื่อนไหวสต็อก`
+    public void โอนย้ายสต็อก(สินค้า สินค้า, int จำนวน, ข้อมูลคลังสินค้า ต้นทาง, ข้อมูลคลังสินค้า ปลายทาง, พนักงาน ผู้ทำรายการ)
+    {
+        // ลดสต็อกที่ต้นทาง
+        // เพิ่มสต็อกที่ปลายทาง
+        บันทึกการเคลื่อนไหวสต็อก(สินค้า.รหัสสินค้า, "โอนออก", จำนวน, ผู้ทำรายการ, $"Transfer from {ต้นทาง.รหัสคลังสินค้า} to {ปลายทาง.รหัสคลังสินค้า}", รหัสคลังสินค้าต้นทาง: ต้นทาง.รหัสคลังสินค้า, รหัสคลังสินค้าปลายทาง: ปลายทาง.รหัสคลังสินค้า);
+        บันทึกการเคลื่อนไหวสต็อก(สินค้า.รหัสสินค้า, "โอนเข้า", จำนวน, ผู้ทำรายการ, $"Transfer from {ต้นทาง.รหัสคลังสินค้า} to {ปลายทาง.รหัสคลังสินค้า}", รหัสคลังสินค้าต้นทาง: ต้นทาง.รหัสคลังสินค้า, รหัสคลังสินค้าปลายทาง: ปลายทาง.รหัสคลังสินค้า);
+        Console.WriteLine($"โอนย้ายสินค้า {สินค้า.ชื่อสินค้า} จำนวน {จำนวน} ชิ้น จาก {ต้นทาง.ชื่อคลังสินค้า} ไป {ปลายทาง.ชื่อคลังสินค้า} สำเร็จ");
+    }
+
+    // --- 229. ระบบบันทึกวิธีการจัดส่งสินค้าจากผู้จัดหาและวันที่ส่งจริงในใบสั่งซื้อ
+    // เพิ่ม `string วิธีการจัดส่งสินค้า (จากผู้จัดหา)` และ `DateTime? วันที่ส่งสินค้าจริง (จากผู้จัดหา)` ใน `รายการสั่งซื้อสินค้า`
+
+    // --- 230. ระบบจัดการการตั้งค่าทั่วไปของ POS (ชื่อร้าน, ที่อยู่, ข้อความท้ายบิล, เปิด/ปิดระบบแต้ม)
+    // เพิ่มคลาส `POS_Setting` และตั้งค่าเป็น Property ใน `ระบบPOS`
+
+    // --- 231. ระบบบันทึก Audit Log ของทุกกิจกรรมสำคัญ (ใครทำอะไร เมื่อไหร่)
+    // เพิ่มคลาส `POS_AuditLog` และ `List<POS_AuditLog>` ใน `ระบบPOS`
+    public void บันทึกAuditLog(พนักงาน พนักงาน, string ประเภทเหตุการณ์, string รายละเอียด, string รหัสอ้างอิง = null)
+    {
+        AuditLogs.Add(new POS_AuditLog
+        {
+            เวลาเกิดเหตุการณ์ = DateTime.Now,
+            พนักงานผู้ทำ = พนักงาน,
+            ประเภทเหตุการณ์ = ประเภทเหตุการณ์,
+            รายละเอียดเหตุการณ์ = รายละเอียด,
+            รหัสอ้างอิง = รหัสอ้างอิง
+        });
+        Console.WriteLine($"Audit Log: {พนักงาน.ชื่อพนักงาน} - {ประเภทเหตุการณ์} - {รายละเอียด}");
+    }
+
+    // --- 232. ระบบจัดการการชำระเงินโดยละเอียด (แยกแต่ละ Payment Transaction)
+    // เพิ่มคลาส `รายการชำระเงิน` และ `List<รายการชำระเงิน>` ใน `ระบบPOS`
+    public void บันทึกการชำระเงิน(string รหัสบิล, string ช่องทาง, decimal จำนวน, string สถานะ, string เลขที่อ้างอิงบริการ = null)
+    {
+        ประวัติการชำระเงิน.Add(new รายการชำระเงิน
+        {
+            รหัสการชำระเงิน = Guid.NewGuid().ToString(),
+            รหัสบิลที่เกี่ยวข้อง = รหัสบิล,
+            ช่องทางการชำระ = ช่องทาง,
+            จำนวนเงิน = จำนวน,
+            สถานะ = สถานะ,
+            วันที่เวลาชำระ = DateTime.Now,
+            เลขที่อ้างอิงจากธนาคาร/บริการ = เลขที่อ้างอิงบริการ
+        });
+    }
+
+    // --- 233. ระบบจัดการสินค้า/บริการแบบ Subscription (รายเดือน/รายปี)
+    // เพิ่มคลาส `POS_SubscriptionService` และ `List<POS_SubscriptionService>` ใน `ระบบPOS`
+    public void ลงทะเบียนบริการสมาชิก(POS_SubscriptionService บริการ)
+    {
+        รายการบริการสมัครสมาชิก.Add(บริการ);
+        Console.WriteLine($"ลงทะเบียนบริการ {บริการ.ชื่อบริการ} ให้ลูกค้า {บริการ.ลูกค้าผู้ใช้บริการ.ชื่อลูกค้า} สำเร็จ");
+    }
+
+    // --- 234. ระบบจัดการใบสั่งผลิต/ประกอบ (สำหรับสินค้าที่ผลิตเอง)
+    // จำเป็นต้องมีคลาสสำหรับ "ใบสั่งผลิต" (Production Order) ที่มีส่วนประกอบและผลลัพธ์
+
+    // --- 235. ระบบจัดการการนับสต็อก (Stock Count/Inventory Audit)
+    // จำเป็นต้องมีกระบวนการบันทึกการนับสต็อกจริงและเปรียบเทียบกับระบบ
+
+    // --- 236. ระบบจำกัดเวลาที่พนักงานสามารถทำงานได้ (Shift Time Limit)
+    public bool ตรวจสอบระยะเวลาทำงาน(พนักงาน พนักงาน)
+    {
+        if (กะปัจจุบัน != null && กะปัจจุบัน.พนักงานเปิดกะ.รหัสพนักงาน == พนักงาน.รหัสพนักงาน)
+        {
+            TimeSpan ระยะเวลาทำงาน = DateTime.Now - กะปัจจุบัน.เวลาเปิดกะ;
+            // ตั้งค่าระยะเวลาทำงานสูงสุด เช่น 8 ชั่วโมง
+            if (ระยะเวลาทำงาน.TotalHours > 8)
+            {
+                Console.WriteLine($"พนักงาน {พนักงาน.ชื่อพนักงาน} ทำงานเกิน 8 ชั่วโมงแล้ว ควรปิดกะ");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // --- 237. ระบบบันทึกการปรับปรุงสต็อก (Stock Adjustment Reasons)
+    // เพิ่ม `เหตุผล` ใน `การเคลื่อนไหวสต็อก` เมื่อมีการปรับปรุงสต็อก (Adjust Stock)
+
+    // --- 238. ระบบจำกัดสิทธิ์การเข้าถึงข้อมูลตามบทบาท (Role-Based Access Control)
+    // ฟังก์ชัน `ตรวจสอบสิทธิ์` ที่ใช้ `สิทธิ์การใช้งาน` ของ `พนักงาน` เป็นตัวกำหนดการเข้าถึง
+
+    // --- 239. ระบบแจ้งเตือนเมื่อเกิดความผิดปกติในการขาย (เช่น ส่วนลดมากเกินไป, ยกเลิกบิลบ่อย)
+    public void แจ้งเตือนความผิดปกติ(string ประเภท, string รายละเอียด)
+    {
+        Console.WriteLine($"!!! แจ้งเตือนความผิดปกติ: [{ประเภท}] {รายละเอียด} !!!");
+        // อาจจะส่งการแจ้งเตือนไปยังผู้ดูแลระบบ
+    }
+
+    // --- 240. ระบบจัดการคะแนนสะสมแบบ Multi-Tier (ระดับสมาชิก)
+    // สามารถทำได้โดยการใช้ `ประเภทลูกค้า` ใน `ลูกค้า` และกำหนดอัตราการสะสมแต้ม/สิทธิประโยชน์ที่แตกต่างกัน
+
+    // ฟังก์ชันทั่วไปของระบบ POS
+    public void เพิ่มสินค้าในตะกร้า(string รหัสสินค้า, int จำนวน)
+    {
+        var สินค้า = คลังสินค้า.FirstOrDefault(s => s.รหัสสินค้า == รหัสสินค้า);
+        if (สินค้า != null)
+        {
+            if (!สามารถขายสินค้าได้(สินค้า, จำนวน)) return; // ข้อ 182
+
+            // ตรวจสอบว่าเป็นสินค้ามี Serial ไหม
+            if (สินค้า.เป็นสินค้ามีเลขSerial)
+            {
+                Console.WriteLine("สินค้าชิ้นนี้มี Serial Number กรุณาระบุเลข Serial:");
+                // ในชีวิตจริงจะมีการสแกน/กรอกเลข Serial
+                // ตัวอย่างนี้จะจำลองการเพิ่มทีละ 1 ชิ้นพร้อม Serial
+                for (int i = 0; i < จำนวน; i++)
+                {
+                    if (สินค้า.เลขSerialที่พร้อมขาย.Any())
+                    {
+                        string sn = สินค้า.เลขSerialที่พร้อมขาย.First();
+                        เพิ่มสินค้ามีSerialเข้าตะกร้า(สินค้า, sn); // ใช้ฟังก์ชันเฉพาะสำหรับ Serial
+                    }
+                    else
+                    {
+                        Console.WriteLine($"สินค้า {สินค้า.ชื่อสินค้า} ไม่มี Serial Number พร้อมขายแล้ว");
+                        break;
+                    }
+                }
+                return;
+            }
+
+            var รายการในตะกร้า = ตะกร้าสินค้า.FirstOrDefault(item => item.สินค้า.รหัสสินค้า == รหัสสินค้า);
+            if (รายการในตะกร้า != null)
+            {
+                รายการในตะกร้า.จำนวน += จำนวน;
+                รายการในตะกร้า.ราคารวมรายการ = รายการในตะกร้า.สินค้า.ราคาต่อหน่วย * รายการในตะกร้า.จำนวน;
+                รายการในตะกร้า.ราคาที่ปรับแล้ว = รายการในตะกร้า.ราคารวมรายการ - รายการในตะกร้า.ส่วนลดรายการ; // ปรับปรุงราคาปรับแล้ว
+            }
+            else
+            {
+                ตะกร้าสินค้า.Add(new รายการสินค้าในตะกร้า
+                {
+                    สินค้า = สินค้า,
+                    จำนวน = จำนวน,
+                    ราคารวมรายการ = สินค้า.ราคาต่อหน่วย * จำนวน,
+                    ราคาที่บันทึกขณะเพิ่ม = สินค้า.ราคาต่อหน่วย,
+                    ราคาที่ปรับแล้ว = สินค้า.ราคาต่อหน่วย * จำนวน // เริ่มต้น
+                });
+            }
+            Console.WriteLine($"เพิ่ม {สินค้า.ชื่อสินค้า} จำนวน {จำนวน} ชิ้น เข้าตะกร้า");
+            แสดงตะกร้าสินค้า();
+        }
+        else
+        {
+            Console.WriteLine("ไม่พบสินค้าที่ระบุ");
+        }
+    }
+
+    public void ลบสินค้าจากตะกร้า(string รหัสสินค้า)
+    {
+        var รายการ = ตะกร้าสินค้า.FirstOrDefault(item => item.สินค้า.รหัสสินค้า == รหัสสินค้า);
+        if (รายการ != null)
+        {
+            ตะกร้าสินค้า.Remove(รายการ);
+            Console.WriteLine($"ลบสินค้า {รายการ.สินค้า.ชื่อสินค้า} ออกจากตะกร้าแล้ว");
+            แสดงตะกร้าสินค้า();
+        }
+        else
+        {
+            Console.WriteLine("ไม่พบสินค้าในตะกร้า");
+        }
+    }
+
+    public void ปรับปรุงจำนวนสินค้าในตะกร้า(string รหัสสินค้า, int จำนวนใหม่)
+    {
+        var รายการ = ตะกร้าสินค้า.FirstOrDefault(item => item.สินค้า.รหัสสินค้า == รหัสสินค้า);
+        if (รายการ != null)
+        {
+            if (จำนวนใหม่ <= 0)
+            {
+                ลบสินค้าจากตะกร้า(รหัสสินค้า);
+                return;
+            }
+
+            if (!สามารถขายสินค้าได้(รายการ.สินค้า, จำนวนใหม่ - รายการ.จำนวน)) return; // ข้อ 182
+
+            รายการ.จำนวน = จำนวนใหม่;
+            รายการ.ราคารวมรายการ = รายการ.สินค้า.ราคาต่อหน่วย * รายการ.จำนวน;
+            รายการ.ราคาที่ปรับแล้ว = รายการ.ราคารวมรายการ - รายการ.ส่วนลดรายการ; // ปรับปรุงราคาปรับแล้ว
+            Console.WriteLine($"ปรับปรุงจำนวน {รายการ.สินค้า.ชื่อสินค้า} เป็น {จำนวนใหม่} ชิ้น");
+            แสดงตะกร้าสินค้า();
+        }
+        else
+        {
+            Console.WriteLine("ไม่พบสินค้าในตะกร้า");
+        }
+    }
+
+    public decimal คำนวณภาษีมูลค่าเพิ่มจากตะกร้า()
+    {
+        decimal ภาษีรวม = 0;
+        foreach (var item in ตะกร้าสินค้า)
+        {
+            if (item.สินค้า.ต้องคิดภาษี)
+            {
+                ภาษีรวม += (item.ราคารวมรายการ - item.ส่วนลดรายการ) * (item.สินค้า.อัตราภาษี / 100);
+            }
+        }
+        return ภาษีรวม;
+    }
+
+    public void เริ่มกะ(พนักงาน พนักงาน, decimal เงินสดเริ่มต้น)
+    {
+        if (พนักงานที่เข้าสู่ระบบปัจจุบัน == null)
+        {
+            Console.WriteLine("กรุณาล็อกอินก่อนเริ่มกะ");
+            return;
+        }
+        if (กะปัจจุบัน != null)
+        {
+            Console.WriteLine("มีกะเปิดอยู่แล้ว กรุณาปิดกะปัจจุบันก่อน");
+            return;
+        }
+
+        กะปัจจุบัน = new ข้อมูลกะ
+        {
+            รหัสกะ = $"SHIFT-{DateTime.Now.ToString("yyyyMMdd-HHmmss")}",
+            เวลาเปิดกะ = DateTime.Now,
+            พนักงานเปิดกะ = พนักงานที่เข้าสู่ระบบปัจจุบัน,
+            เงินสดเริ่มต้นกะ = เงินสดเริ่มต้น,
+            เงินสดปิดกะ = เงินสดเริ่มต้น,
+            บิลที่ขายในกะ = new List<ใบเสร็จ>(),
+            ประวัติการเคลียร์ลิ้นชัก = new List<รายงานการเคลียร์ลิ้นชัก>() // ข้อ 216
+        };
+        ประวัติกะขาย.Add(กะปัจจุบัน);
+        บันทึกAuditLog(พนักงานที่เข้าสู่ระบบปัจจุบัน, "Start Shift", $"เริ่มต้นกะ {กะปัจจุบัน.รหัสกะ} ด้วยเงินสด {เงินสดเริ่มต้น:N2}"); // ข้อ 231
+        Console.WriteLine($"กะ {กะปัจจุบัน.รหัสกะ} เริ่มต้นโดย {พนักงานที่เข้าสู่ระบบปัจจุบัน.ชื่อพนักงาน} ด้วยเงินสดเริ่มต้น {เงินสดเริ่มต้น:N2} บาท");
+    }
+
+    public void ปิดกะ(พนักงาน พนักงาน, decimal เงินสดปิดกะจริง)
+    {
+        if (กะปัจจุบัน == null || กะปัจจุบัน.พนักงานเปิดกะ.รหัสพนักงาน != พนักงาน.รหัสพนักงาน)
+        {
+            Console.WriteLine("ไม่มีกะที่เปิดโดยคุณ หรือกะปัจจุบันไม่ถูกต้อง");
+            return;
+        }
+
+        กะปัจจุบัน.เวลาปิดกะ = DateTime.Now;
+        กะปัจจุบัน.พนักงานปิดกะ = พนักงานที่เข้าสู่ระบบปัจจุบัน;
+        กะปัจจุบัน.ยอดขายเงินสด = กะปัจจุบัน.บิลที่ขายในกะ.Where(b => b.ช่องทางการชำระเงิน == "เงินสด").Sum(b => b.ยอดสุทธิที่ต้องชำระ);
+        กะปัจจุบัน.ยอดขายบัตรเครดิต = กะปัจจุบัน.บิลที่ขายในกะ.Where(b => b.ช่องทางการชำระเงิน == "บัตรเครดิต").Sum(b => b.ยอดสุทธิที่ต้องชำระ);
+        กะปัจจุบัน.ยอดรวมในกะ = กะปัจจุบัน.บิลที่ขายในกะ.Sum(b => b.ยอดสุทธิที่ต้องชำระ);
+        กะปัจจุบัน.เงินสดปิดกะ = เงินสดปิดกะจริง; // ยอดเงินสดที่นับได้จริง
+        กะปัจจุบัน.ยอดเงินมัดจำรับในกะ = กะปัจจุบัน.บิลที่ขายในกะ.Sum(b => b.ยอดเงินมัดจำ); // ข้อ 186
+
+        บันทึกAuditLog(พนักงานที่เข้าสู่ระบบปัจจุบัน, "End Shift", $"ปิดกะ {กะปัจจุบัน.รหัสกะ} ยอดขายรวม {กะปัจจุบัน.ยอดรวมในกะ:N2} บาท"); // ข้อ 231
+        Console.WriteLine($"กะ {กะปัจจุบัน.รหัสกะ} ปิดลงแล้วโดย {พนักงานที่เข้าสู่ระบบปัจจุบัน.ชื่อพนักงาน}");
+        Console.WriteLine($"สรุปยอดขายในกะ: {กะปัจจุบัน.ยอดรวมในกะ:N2} บาท");
+        Console.WriteLine($"เงินสดที่นับได้จริง: {เงินสดปิดกะจริง:N2} บาท (เริ่มต้น: {กะปัจจุบัน.เงินสดเริ่มต้นกะ:N2})");
+        กะปัจจุบัน = null; // ปิดกะปัจจุบัน
+    }
+}
+```
+
+---
+
+### รายละเอียดฟีเจอร์ใหม่ 30 ข้อ
+
+211.  **รองรับบาร์โค้ดเสริม/หลายบาร์โค้ดต่อ 1 สินค้า**:
+    * เพิ่ม `string บาร์โค้ดเสริม` ในคลาส **`สินค้า`** (หรืออาจเป็น `List<string>` สำหรับบาร์โค้ดเสริมหลายอัน) เพื่อให้สามารถค้นหาสินค้าได้ด้วยบาร์โค้ดที่แตกต่างกันแต่เป็นสินค้าเดียวกัน
+    * ฟังก์ชัน **`ค้นหาสินค้าด้วยบาร์โค้ด`** จะตรวจสอบทั้ง `บาร์โค้ดหลัก` และ `บาร์โค้ดเสริม`
+
+212.  **ระบบจัดการสินค้าที่มีเลข Serial Number (ติดตามได้แต่ละชิ้น)**:
+    * เพิ่ม `bool เป็นสินค้ามีเลข Serial` และ `List<string> เลขSerialที่พร้อมขาย` ในคลาส **`สินค้า`** เพื่อระบุว่าสินค้าต้องมีการติดตามเลข Serial
+    * เพิ่ม `List<string> เลขSerialที่ขาย` ในคลาส **`รายการสินค้าในตะกร้า`** เพื่อบันทึก Serial ที่ขายในบิลนั้นๆ
+    * ฟังก์ชัน **`เพิ่มสินค้ามีSerialเข้าตะกร้า`** เพื่อจัดการการเพิ่มสินค้า Serial Number ลงตะกร้า
+
+213.  **ระบบจัดการระยะเวลาและเงื่อนไขการรับประกันสินค้า**:
+    * เพิ่ม `int ระยะเวลารับประกัน (วัน)` และ `string เงื่อนไขการรับประกัน` ในคลาส **`สินค้า`**
+    * เพิ่ม `DateTime? วันที่ส่งเอกสาร (สำหรับรับประกัน)` ในคลาส **`ใบเสร็จ`** สำหรับการบันทึกวันที่เริ่มต้นการรับประกัน (เมื่อสินค้าถูกขายไปพร้อม Serial)
+    * ฟังก์ชัน **`คำนวณวันสิ้นสุดรับประกัน`** เพื่อคำนวณวันหมดอายุประกัน
+
+214.  **เชื่อมโยงบิลขายกับการจอง/นัดหมาย**:
+    * เพิ่ม `string รหัสอ้างอิงการจอง/นัดหมาย` ในคลาส **`ใบเสร็จ`** เพื่อเชื่อมโยงการขายกับระบบการจองหรือนัดหมายภายนอก
+
+215.  **ระบบจัดการที่อยู่จัดส่งหลายที่สำหรับลูกค้า 1 คน**:
+    * เพิ่มคลาส **`ที่อยู่จัดส่ง`** และ `List<ที่อยู่จัดส่ง>` ในคลาส **`ลูกค้า`** เพื่อเก็บข้อมูลที่อยู่จัดส่งที่หลากหลายของลูกค้า
+
+216.  **ระบบบันทึกการเคลียร์ลิ้นชัก (Cash Drawer Reconciliation)**:
+    * เพิ่มคลาส **`รายงานการเคลียร์ลิ้นชัก`** และ `List<รายงานการเคลียร์ลิ้นชัก>` ในคลาส **`ข้อมูลกะ`** เพื่อบันทึกรายละเอียดการนำเงินออกจากลิ้นชัก
+    * ฟังก์ชัน **`เคลียร์ลิ้นชัก`** สำหรับการดำเนินการ
+
+217.  **ระบบจัดการสูตรอาหาร/ส่วนผสมสำหรับสินค้าที่ผลิตเอง (Recipe/BOM Management)**:
+    * เพิ่ม `string สูตรอาหารหรือส่วนผสม` ในคลาส **`สินค้า`** (ควรเป็นโครงสร้างข้อมูลที่ซับซ้อนกว่านี้ในระบบจริง) เพื่อระบุส่วนประกอบหรือขั้นตอนการผลิต
+
+218.  **ระบบแจ้งเตือนเมื่อสินค้าใกล้หมดอายุ (Product Expiry Alert)**:
+    * ฟังก์ชัน **`แจ้งเตือนสินค้าใกล้หมดอายุ`** ที่จะดึงรายการสินค้าที่กำลังจะหมดอายุในอีก X วันข้างหน้า
+
+219.  **กำหนดเงื่อนไขการร่วมโปรโมชั่นตามประเภทสมาชิก/กลุ่มลูกค้า**:
+    * เพิ่ม `List<string> กลุ่มลูกค้าที่ร่วมรายการ` ในคลาส **`โปรโมชั่น`**
+    * เพิ่ม `string ประเภทลูกค้า ณ เวลาที่ซื้อ` ในคลาส **`ใบเสร็จ`** เพื่อบันทึกประเภทลูกค้าในขณะที่ทำรายการขาย
+
+220.  **บันทึกวันที่ผลิตสินค้า (Manufacturing Date)**:
+    * เพิ่ม `DateTime? วันที่ผลิต` ในคลาส **`สินค้า`**
+
+221.  **บันทึกมาตรฐานคุณภาพ/ใบรับรองของสินค้า**:
+    * เพิ่ม `string มาตรฐานคุณภาพ` ในคลาส **`สินค้า`** สำหรับสินค้าที่ต้องมีใบรับรองมาตรฐาน
+
+222.  **ระบบรองรับการเปิดหลายกะพร้อมกัน (Multi-Shift Operations)**:
+    * การออกแบบปัจจุบันเป็นกะต่อเครื่อง/ผู้ใช้ หากต้องการหลายกะพร้อมกันจะต้องมี Logic การจัดการ Session ที่ซับซ้อนขึ้นและแยกข้อมูลในฐานข้อมูล
+
+223.  **ระบบอ้างอิงเลขที่การส่งสินค้า (Shipping Tracking Number)**:
+    * เพิ่ม `string รหัสอ้างอิงการส่งสินค้า` ในคลาส **`ใบเสร็จ`** เพื่อให้ลูกค้าสามารถติดตามสถานะการจัดส่งได้
+
+224.  **ระบบเชื่อมโยงกับบัญชีแยกประเภท (General Ledger Account Mapping)**:
+    * เพิ่ม `string รหัสประเภทบัญชีรายได้` และ `string รหัสประเภทบัญชีต้นทุน` ในคลาส **`สินค้า`** เพื่อเชื่อมโยงกับระบบบัญชี
+    * เพิ่ม `string รหัสแผนกบัญชี` ในคลาส **`พนักงาน`** เพื่อกำหนดแผนกบัญชีที่พนักงานสังกัด
+    * เพิ่ม `string รหัสแผนกบัญชีรายได้` ในคลาส **`ใบเสร็จ`**
+
+225.  **ระบบจัดการรหัสภาษีสำหรับลูกค้า (Customer Tax ID/Group) และนำไปใช้ในบิล**:
+    * เพิ่ม `string รหัสภาษีลูกค้า` ในคลาส **`ลูกค้า`**
+    * เพิ่ม `string รหัสภาษีที่ใช้` ในคลาส **`ใบเสนอราคา`** (เพื่อระบุรหัสภาษีที่ใช้ในเอกสารเสนอราคา)
+
+226.  **ระบบอนุมัติเอกสาร (ใบเสนอราคา, ใบสั่งซื้อ) โดยผู้จัดการ**:
+    * เพิ่ม `DateTime? วันที่อนุมัติ`, `พนักงาน ผู้ดูแลที่อนุมัติ`, `string หมายเหตุการอนุมัติ` ในคลาส **`ใบเสนอราคา`** และ **`รายการสั่งซื้อสินค้า`**
+
+227.  **ระบบบันทึกหมายเหตุการคืนสินค้า (Return Reason Note)**:
+    * เพิ่ม `string หมายเหตุการคืน` ในคลาส **`รายการคืนสินค้า`** เพื่อให้สามารถบันทึกรายละเอียดเพิ่มเติมเกี่ยวกับเหตุผลการคืนสินค้า
+
+228.  **ระบบจัดการหลายคลังสินค้า (Multi-Warehouse Inventory)**:
+    * เพิ่มคลาส **`ข้อมูลคลังสินค้า`** และ `List<ข้อมูลคลังสินค้า>` ในคลาส **`ระบบPOS`**
+    * เพิ่ม `string รหัสคลังสินค้าต้นทาง` และ `string รหัสคลังสินค้าปลายทาง` ในคลาส **`การเคลื่อนไหวสต็อก`** สำหรับการโอนย้ายสินค้าระหว่างคลัง
+    * ฟังก์ชัน **`โอนย้ายสต็อก`**
+
+229.  **ระบบบันทึกวิธีการจัดส่งสินค้าจากผู้จัดหาและวันที่ส่งจริงในใบสั่งซื้อ**:
+    * เพิ่ม `string วิธีการจัดส่งสินค้า (จากผู้จัดหา)` และ `DateTime? วันที่ส่งสินค้าจริง (จากผู้จัดหา)` ในคลาส **`รายการสั่งซื้อสินค้า`**
+
+230.  **ระบบจัดการการตั้งค่าทั่วไปของ POS (ชื่อร้าน, ที่อยู่, ข้อความท้ายบิล, เปิด/ปิดระบบแต้ม)**:
+    * เพิ่มคลาส **`POS_Setting`** เพื่อรวบรวมการตั้งค่าระบบต่างๆ และเป็น Property ในคลาส **`ระบบPOS`**
+
+231.  **ระบบบันทึก Audit Log ของทุกกิจกรรมสำคัญ (ใครทำอะไร เมื่อไหร่)**:
+    * เพิ่มคลาส **`POS_AuditLog`** และ `List<POS_AuditLog>` ในคลาส **`ระบบPOS`**
+    * ฟังก์ชัน **`บันทึกAuditLog`** สำหรับบันทึกเหตุการณ์
+
+232.  **ระบบจัดการการชำระเงินโดยละเอียด (แยกแต่ละ Payment Transaction)**:
+    * เพิ่มคลาส **`รายการชำระเงิน`** และ `List<รายการชำระเงิน>` ในคลาส **`ระบบPOS`** เพื่อบันทึกรายละเอียดของแต่ละการชำระเงิน
+
+233.  **ระบบจัดการสินค้า/บริการแบบ Subscription (รายเดือน/รายปี)**:
+    * เพิ่มคลาส **`POS_SubscriptionService`** และ `List<POS_SubscriptionService>` ในคลาส **`ระบบPOS`** เพื่อจัดการบริการแบบสมัครสมาชิก
+    * ฟังก์ชัน **`ลงทะเบียนบริการสมาชิก`**
+
+234.  **ระบบจัดการใบสั่งผลิต/ประกอบ (สำหรับสินค้าที่ผลิตเอง)**:
+    * จำเป็นต้องมีโครงสร้างข้อมูลใหม่สำหรับ **`ใบสั่งผลิต`** (Production Order) ที่ระบุสินค้าที่จะผลิต จำนวน ส่วนประกอบที่ใช้ และสินค้าที่ได้
+
+235.  **ระบบจัดการการนับสต็อก (Stock Count/Inventory Audit)**:
+    * จำเป็นต้องมีโมดูลสำหรับการสร้างแผนการนับสต็อก บันทึกผลการนับ และปรับปรุงสต็อกตามผลที่ได้
+
+236.  **ระบบจำกัดเวลาที่พนักงานสามารถทำงานได้ (Shift Time Limit)**:
+    * ฟังก์ชัน **`ตรวจสอบระยะเวลาทำงาน`** ที่ตรวจสอบว่าพนักงานทำงานเกินเวลาที่กำหนดในกะหรือไม่
+
+237.  **ระบบบันทึกการปรับปรุงสต็อก (Stock Adjustment Reasons)**:
+    * สามารถทำได้โดยการใช้ `เหตุผล` ในคลาส **`การเคลื่อนไหวสต็อก`** เมื่อ `ประเภทการเคลื่อนไหว` เป็น "ปรับปรุง"
+
+238.  **ระบบจำกัดสิทธิ์การเข้าถึงข้อมูลตามบทบาท (Role-Based Access Control)**:
+    * ฟังก์ชัน **`ตรวจสอบสิทธิ์`** ที่มีความยืดหยุ่นในการกำหนดบทบาท (`สิทธิ์การใช้งาน` ในคลาส `พนักงาน`) และการกระทำที่อนุญาต
+
+239.  **ระบบแจ้งเตือนเมื่อเกิดความผิดปกติในการขาย (เช่น ส่วนลดมากเกินไป, ยกเลิกบิลบ่อย)**:
+    * ฟังก์ชัน **`แจ้งเตือนความผิดปกติ`** ที่สามารถส่งการแจ้งเตือนไปยังผู้ดูแลระบบเมื่อตรวจพบเหตุการณ์ที่ผิดปกติ
+
+240.  **ระบบจัดการคะแนนสะสมแบบ Multi-Tier (ระดับสมาชิก)**:
+    * สามารถทำได้โดยการใช้ `ประเภทลูกค้า` ในคลาส **`ลูกค้า`** และกำหนดเงื่อนไขการสะสมแต้ม, การแลกแต้ม หรือสิทธิประโยชน์ที่แตกต่างกันไปตามระดับของลูกค้า
+
+---
+
+หวังว่าฟีเจอร์ชุดนี้จะทำให้แนวคิดของระบบ POS ของคุณสมบูรณ์ยิ่งขึ้นไปอีกนะครับ! หากมีข้อสงสัยหรือต้องการต่อยอดในส่วนใด สามารถสอบถามได้เลยครับ
