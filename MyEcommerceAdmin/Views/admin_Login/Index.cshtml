@@ -1,0 +1,190 @@
+﻿@model MyEcommerceAdmin.Models.admin_Login
+
+@{ Layout = null; }
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin-Login</title>
+    @* Include necessary CSS files *@
+    <link href="~/Content/CSS/bootstrap.css" rel="stylesheet" />
+    <link href="~/Fontawesome/css/all.css" rel="stylesheet" />
+    <link href="~/Content/CSS/form.css" rel="stylesheet" />
+    @* Add custom styles for error messages *@
+    <style>
+        .server-error-message {
+            color: red;
+            margin-top: 10px;
+            list-style: none;
+            padding-left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        @* The form element remains, but its submission will be handled by AJAX *@
+        @using (Html.BeginForm("Login", "admin_Login", FormMethod.Post, new { @id = "loginForm" }))
+        {
+            @* Keep ValidationSummary for client-side validation if needed,
+                but server errors from JSON will be displayed separately. *@
+            @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+            @Html.AntiForgeryToken()
+
+            <div class="row">
+                <div class="col-md-6">
+                    <img src="~/Content/img/undraw_remotely_2j6y.svg" alt="Image" class="img-fluid">
+                </div>
+                <div class="col-md-6 contents" style="padding-top:120px;">
+                    <div class="row justify-content-center">
+                        <div class="col-md-8">
+                            <div class="mb-4">
+                                <h3>Admin Panel</h3>
+                                <p class="mb-4">Login To Your Account</p>
+                            </div>
+                            @* The <form> tag here is redundant as we are using Html.BeginForm above *@
+                            @* <form> *@
+                            <div class="form-group first">
+                                @* Display client-side validation messages here if needed *@
+                                @* @Html.ValidationSummary(true, "", new { @class = "text-danger" }) *@
+                                <div class="input-group">
+                                    <label for="UserName" class="col-form-label"><i class="fa-duotone fa-user-vneck-hair fs-2"></i></label>&nbsp;&nbsp;
+                                    @Html.EditorFor(model => model.UserName, new { htmlAttributes = new { @class = "form-control", @name = "UserName", @placeholder = "Username" } })
+                                    @* Display client-side validation messages for UserName *@
+                                    @Html.ValidationMessageFor(model => model.UserName, "", new { @class = "text-danger" })
+                                </div>
+                            </div><br />
+                            <div class="form-group last mb-4">
+                                <div class="input-group">
+                                    <label for="Password" class="col-form-label"><i class="fa-duotone fa-lock-keyhole fs-2"></i></label>&nbsp;&nbsp;
+                                    @Html.EditorFor(model => model.Password, new { htmlAttributes = new { @class = "form-control", @name = "Password", @type = "password", @placeholder = "Password" } })
+                                    @* Display client-side validation messages for Password *@
+                                    @Html.ValidationMessageFor(model => model.Password, "", new { @class = "text-danger" })
+                                </div>
+                            </div>
+
+                            <div class="checkbox mt-3 text-center">
+                                <label class="">
+                                    <input id="login-remember" type="checkbox" name="remember" value="1"> Remember me
+                                </label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                <span class="ml-5 justify-content-end">
+                                    <a href="#" class="forgot-pass">Forgot Password</a>
+                                </span>
+                            </div>
+                            <div class="col-md-12 mt-3">
+                                @* The button type is submit, which will trigger the form submission event *@
+                                <button type="submit" id="btn-login" class="btn btn-success col-12">Login</button>
+                            </div>
+                            @* </form> *@
+
+                            @* Area to display server-side error messages from AJAX response *@
+                            <div id="serverErrorMessage" class="server-error-message">
+                                @* Error messages will be inserted here by JavaScript *@
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    <footer class="footer fixed-bottom">
+        <div class="container-fluid">
+            <div class="row text-muted">
+                <div class="col-6 text-start">
+                    <p class="mb-0">
+                        <a class="text-muted nav-link" href="@Url.Action("Index", "admin_Login")">&copy; @DateTime.Now.Year<strong>&nbsp;IsDB-BISEW</strong></a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    @* Include jQuery for AJAX functionality *@
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    @* Include Bootstrap JS (ensure Popper.js is included if needed by your Bootstrap version) *@
+    <script src="~/Content/JS/bootstrap.js"></script>
+    @* You might also need jQuery Validation and Unobtrusive Validation scripts
+        if you are relying on client-side validation *@
+    @* <script src="~/Scripts/jquery.validate.min.js"></script> *@
+    @* <script src="~/Scripts/jquery.validate.unobtrusive.min.js"></script> *@
+
+
+    <script>
+        $(document).ready(function () {
+            // Get a reference to the form
+            var $loginForm = $('#loginForm');
+            // Get a reference to the error message area
+            var $serverErrorMessage = $('#serverErrorMessage');
+
+            // Attach a submit event handler to the form
+            $loginForm.submit(function (event) {
+                // Prevent the default form submission (which would cause a page reload)
+                event.preventDefault();
+
+                // Clear any previous server-side error messages
+                $serverErrorMessage.empty();
+
+                // Check if client-side validation passes (if using unobtrusive validation)
+                // If you are using jquery.validate.unobtrusive, you can check like this:
+                // if (!$loginForm.valid()) {
+                //     // If client-side validation fails, stop here.
+                //     // Validation messages will be displayed by the validation scripts.
+                //     return;
+                // }
+
+                // Serialize the form data into a format suitable for AJAX
+                var formData = $loginForm.serialize();
+
+                // Perform the AJAX POST request
+                $.ajax({
+                    url: $loginForm.attr('action'), // Get the action URL from the form
+                    type: $loginForm.attr('method'), // Get the method (POST) from the form
+                    data: formData, // Send the serialized form data
+                    dataType: 'json', // Expect a JSON response from the server
+                    headers: { // Include the AntiForgeryToken in the headers
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function (response) {
+                        // This function is called if the AJAX request is successful
+                        console.log("Server response:", response); // Log the response for debugging
+
+                        if (response.success) {
+                            // If login was successful, redirect the user
+                            // The server should provide the redirect URL in the response
+                            if (response.redirectUrl) {
+                                window.location.href = response.redirectUrl;
+                            } else {
+                                // Handle case where redirectUrl is not provided (shouldn't happen if server logic is correct)
+                                console.error("Login successful but no redirect URL provided.");
+                                // Optionally display a success message here
+                            }
+                        } else {
+                            // If login failed (invalid credentials or validation errors)
+                            // Display the error message(s) from the server response
+                            var errorMessageHtml = '<ul>';
+                            if (response.message) {
+                                errorMessageHtml += '<li>' + response.message + '</li>';
+                            }
+                            // If there are specific validation errors, list them
+                            if (response.errors && response.errors.length > 0) {
+                                response.errors.forEach(function (error) {
+                                    errorMessageHtml += '<li>' + error + '</li>';
+                                });
+                            }
+                            errorMessageHtml += '</ul>';
+                            $serverErrorMessage.html(errorMessageHtml); // Insert error HTML into the error area
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        // This function is called if the AJAX request fails (e.g., network error, server error 500)
+                        console.error("AJAX Error:", status, error);
+                        // Display a generic error message to the user
+                        $serverErrorMessage.html('<ul><li>An error occurred during login. Please try again.</li></ul>');
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>

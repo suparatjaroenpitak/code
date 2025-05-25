@@ -1,0 +1,200 @@
+﻿@model MyEcommerceAdmin.Models.CustomerVM
+@{
+    ViewBag.Title = "RegisterCustomer";
+    Layout = "~/Views/Shared/_Layout1.cshtml"; // Ensure this layout includes jQuery and Bootstrap CSS
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <div class="col-md-12">
+                <h2 class="text-info" style="padding-top:20px;">Register Now</h2>
+                <hr />
+
+                @* Replaced Ajax.BeginForm with a standard HTML form *@
+                <form id="registerForm" action="@Url.Action("RegisterCustomer", "Account")" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+
+                    <div class="row mb-2">
+                        @* This div will be used to display general messages (success/error) *@
+                        <div id="msg" class="col-12">
+                            @* Validation summary can also be displayed here if desired *@
+                            @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            @Html.LabelFor(x => x.First_Name, new { @class = "text-info" })
+                            @Html.TextBoxFor(x => x.First_Name, new { @class = "form-control" })
+                            @* Validation message placeholder *@
+                            <span class="text-danger" data-valmsg-for="First_Name" data-valmsg-replace="true"></span>
+                        </div>
+                        <div class="col-md-6">
+                            @Html.LabelFor(x => x.Last_Name, new { @class = "text-info" })
+                            @Html.TextBoxFor(x => x.Last_Name, new { @class = "form-control" })
+                            @* Validation message placeholder *@
+                            <span class="text-danger" data-valmsg-for="Last_Name" data-valmsg-replace="true"></span>
+                        </div>
+
+                        <div class="col-md-6" style="padding-top:10px;">
+                            @Html.LabelFor(x => x.UserName, new { @class = "text-info" })
+                            @Html.TextBoxFor(x => x.UserName, new { @class = "form-control" })
+                            @* Validation message placeholder *@
+                            <span class="text-danger" data-valmsg-for="UserName" data-valmsg-replace="true"></span>
+                        </div>
+                        <div class="col-md-6" style="padding-top:10px;">
+                            @Html.LabelFor(x => x.Password, new { @class = "text-info" })
+                            @Html.TextBoxFor(x => x.Password, new { @class = "form-control", Type = "password" })
+                            @* Validation message placeholder *@
+                            <span class="text-danger" data-valmsg-for="Password" data-valmsg-replace="true"></span>
+                        </div>
+
+                        <div class="col-md-6" style="padding-top:10px;">
+                            @Html.LabelFor(x => x.DateofBirth, new { @class = "text-info" })
+                            @Html.EditorFor(x => x.DateofBirth, new { htmlAttributes = new { @class = "form-control", Type = "date" } })
+                            @* Validation message placeholder *@
+                            <span class="text-danger" data-valmsg-for="DateofBirth" data-valmsg-replace="true"></span>
+                        </div>
+                        <div class="col-md-6" style="padding-top:10px;">
+                            @Html.LabelFor(x => x.Gender, new { @class = "text-info" })
+                            @Html.DropDownListFor(x => x.Gender, new List<SelectListItem>() {
+                                new SelectListItem(){Text="Male",Value="Male"},
+                                new SelectListItem(){Text="Female",Value="Female"},
+                                new SelectListItem(){Text="Other",Value="Other"}
+                            }, "--Select Gender--", new { @class = "form-control" })
+                            @* Validation message placeholder *@
+                            <span class="text-danger" data-valmsg-for="Gender" data-valmsg-replace="true"></span>
+                        </div>
+
+                        <div class="col-md-6" style="padding-top:10px;">
+                            @Html.LabelFor(x => x.Country, new { @class = "text-info" })
+                            @Html.TextBoxFor(x => x.Country, new { @class = "form-control" })
+                            @* Validation message placeholder *@
+                            <span class="text-danger" data-valmsg-for="Country" data-valmsg-replace="true"></span>
+                        </div>
+                        <div class="col-md-6" style="padding-top:10px;">
+                            @Html.LabelFor(x => x.City, new { @class = "text-info" })
+                            @Html.TextBoxFor(x => x.City, new { @class = "form-control" })
+                            @* Validation message placeholder *@
+                            <span class="text-danger" data-valmsg-for="City" data-valmsg-replace="true"></span>
+                        </div>
+
+                        <div class="col-md-6" style="padding-top:10px;">
+                            @Html.LabelFor(x => x.PostalCode, new { @class = "text-info" })
+                            @Html.TextBoxFor(x => x.PostalCode, new { @class = "form-control" })
+                            @* Validation message placeholder *@
+                            <span class="text-danger" data-valmsg-for="PostalCode" data-valmsg-replace="true"></span>
+                        </div>
+                        <div class="col-md-6" style="padding-top:10px;">
+                            @Html.LabelFor(x => x.Email, new { @class = "text-info" })
+                            @Html.TextBoxFor(x => x.Email, new { @class = "form-control", Type = "email" })
+                            @* Validation message placeholder *@
+                            <span class="text-danger" data-valmsg-for="Email" data-valmsg-replace="true"></span>
+                        </div>
+
+                        <div class="col-md-6" style="padding-top:10px;">
+                            @Html.LabelFor(x => x.Phone, new { @class = "text-info" })
+                            @Html.TextBoxFor(x => x.Phone, new { @class = "form-control" })
+                            @* Validation message placeholder *@
+                            <span class="text-danger" data-valmsg-for="Phone" data-valmsg-replace="true"></span>
+                        </div>
+                        <div class="col-md-6" style="padding-top:10px;">
+                            @Html.LabelFor(x => x.Address, new { @class = "text-info" })
+                            @Html.TextAreaFor(x => x.Address, new { @class = "form-control" })
+                            @* Validation message placeholder *@
+                            <span class="text-danger" data-valmsg-for="Address" data-valmsg-replace="true"></span>
+                        </div>
+                        <div class="col-md-6">
+                            @Html.LabelFor(x => x.Picture, new { @class = "text-info" })
+                            @Html.TextBoxFor(x => x.Picture, new { @class = "form-control", Type = "file" })
+                            @* Validation message placeholder *@
+                            <span class="text-danger" data-valmsg-for="Picture" data-valmsg-replace="true"></span>
+                        </div>
+                        <div class="col-md-6" style="padding-top:20px; padding-bottom:10px;">
+                            @* Changed button type to button to prevent default form submission *@
+                            <button type="button" id="btnRegister" class="btn btn-success btn-lg col-12"><i class="fa-regular fa-floppy-disk"></i> Register</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts{
+    @* Using CDN links for jQuery and validation libraries *@
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            // Attach a click event handler to the Register button
+            $("#btnRegister").click(function () {
+                // Get the form element
+                var form = $("#registerForm");
+
+                // Perform client-side validation using jQuery Validate
+                if (form.valid()) {
+                    // Clear previous messages and errors
+                    $("#msg").empty();
+                    $(".text-danger").empty(); // Clear validation messages
+
+                    // Create FormData object to send form data including file
+                    var formData = new FormData(form[0]);
+
+                    // Send AJAX request
+                    $.ajax({
+                        url: form.attr("action"), // URL from the form's action attribute
+                        type: form.attr("method"), // Method from the form's method attribute (POST)
+                        data: formData,
+                        processData: false, // Prevent jQuery from processing the data
+                        contentType: false, // Prevent jQuery from setting the content type
+                        dataType: "json", // Expecting JSON response from the server
+                        success: function (response) {
+                            if (response.success) {
+                                // Display success message
+                                $("#msg").html('<div class="alert alert-success">' + response.message + '</div>');
+                                // Redirect to the login page after a short delay
+                                setTimeout(function () {
+                                    window.location.href = response.redirectUrl;
+                                }, 2000); // Redirect after 2 seconds
+                            } else {
+                                // Display general error message if available
+                                if (response.message) {
+                                    $("#msg").html('<div class="alert alert-danger">' + response.message + '</div>');
+                                }
+                                // Display field-specific validation errors
+                                if (response.errors) {
+                                    $.each(response.errors, function (key, value) {
+                                        // Find the validation message span for the field and set its text
+                                        $('[data-valmsg-for="' + key + '"]').text(value.join(', '));
+                                    });
+                                } else {
+                                    // If no specific errors or message, display a generic failure
+                                    $("#msg").html('<div class="alert alert-danger">Registration failed. Please check the form.</div>');
+                                }
+                            }
+                        },
+                        error: function (xhr, status, error) {
+                            // Handle AJAX request errors (e.g., server error 500)
+                            console.error("AJAX Error:", status, error);
+                            $("#msg").html('<div class="alert alert-danger">An unexpected error occurred. Please try again later.</div>');
+                        }
+                    });
+                }
+            });
+
+            // The clearAll function is not strictly needed with redirection,
+            // but you could call it manually after a successful response
+            // if you weren't redirecting. Keeping it here for reference.
+            // function clearAll() {
+            //     $("#registerForm")[0].reset(); // Reset the form
+            //     $("#msg").empty(); // Clear messages
+            //     $(".text-danger").empty(); // Clear validation messages
+            // }
+        });
+    </script>
+
+}

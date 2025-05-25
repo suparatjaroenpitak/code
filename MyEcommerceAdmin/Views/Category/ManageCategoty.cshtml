@@ -1,0 +1,48 @@
+﻿@model IEnumerable<MyEcommerceAdmin.Models.Category>
+@{
+    ViewBag.Title = "Edit  Category";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row">
+    <div class="col">
+        <h2 class="text-info">Add New Category</h2>
+        <hr />
+        <div class="col-md-12">
+
+
+                <div class="row mb-2">
+                    <div id="msg">
+
+                    </div>
+                </div>
+                @foreach (var pdt in Model)
+                {
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <div class="text-info">@Html.DisplayFor(p => pdt.Name)</div>
+                        </div>
+                        <div>
+                            <a href="@Url.Action("Delete", "Category", new {id = pdt.CategoryID })" class="btn btn-outline-danger btn-sm"><i class="fa-regular fa-trash-arrow-up "></i>Delete</a>
+                        </div>
+                        <div class="col-md-6" style="padding-top:50px;">
+                        </div>
+                    </div>
+                }
+
+
+            </div>
+    </div>
+</div>
+@section scripts{
+    <script src="~/Content/JS/jquery-3.6.0.js"></script>
+    <script src="~/Content/JS/jquery.validate.js"></script>
+    <script src="~/Content/JS/jquery.validate.unobtrusive.js"></script>
+    <script src="~/Content/JS/jquery.unobtrusive-ajax.js"></script>
+    <script>
+    function clearAll() {
+            $("#form0").trigger("reset");
+        }</script>
+
+}
+
