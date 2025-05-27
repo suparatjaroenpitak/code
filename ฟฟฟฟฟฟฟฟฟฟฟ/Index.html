@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C# & ASP.NET Learning Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            line-height: 1.6;
+        }
+        
+        .btn-primary {
+            background-color: #4f46e5;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s ease-in-out;
+        }
+        
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+        
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: #374151;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s ease-in-out;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+        }
+        
+        .input-field,
+        .textarea-field,
+        .select-field {
+            border: 1px solid #d1d5db;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            width: 100%;
+            box-sizing: border-box;
+            /* Ensures padding doesn't increase total width */
+        }
+        
+        .card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        
+        pre {
+            background-color: #1f2937;
+            /* bg-gray-800 */
+            color: #f9fafb;
+            /* text-gray-50 */
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+            /* Preferred coding font */
+            font-size: 0.9em;
+        }
+        
+        code {
+            font-family: inherit;
+        }
+        /* Markdown specific styles */
+        
+        #detail-content h1,
+        #detail-content h2,
+        #detail-content h3 {
+            font-weight: bold;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        
+        #detail-content h1 {
+            font-size: 2.25rem;
+        }
+        /* text-4xl */
+        
+        #detail-content h2 {
+            font-size: 1.875rem;
+        }
+        /* text-3xl */
+        
+        #detail-content h3 {
+            font-size: 1.5rem;
+        }
+        /* text-2xl */
+        
+        #detail-content p {
+            margin-bottom: 1em;
+        }
+        
+        #detail-content ul,
+        #detail-content ol {
+            list-style-position: inside;
+            margin-bottom: 1em;
+            padding-left: 1.5em;
+        }
+        
+        #detail-content ul li {
+            list-style-type: disc;
+        }
+        
+        #detail-content ol li {
+            list-style-type: decimal;
+        }
+        
+        #detail-content strong {
+            font-weight: bold;
+        }
+        
+        #detail-content em {
+            font-style: italic;
+        }
+        
+        #detail-content a {
+            color: #4f46e5;
+            text-decoration: underline;
+        }
+        
+        #detail-content pre {
+            background-color: #1f2937;
+            color: #f9fafb;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin-bottom: 1em;
+        }
+        
+        #detail-content code:not(pre code) {
+            background-color: #e5e7eb;
+            padding: 0.2em 0.4em;
+            border-radius: 0.25rem;
+            font-size: 0.875em;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+    <header class="bg-indigo-700 text-white p-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-3xl font-bold">C# & ASP.NET Learning Hub</h1>
+            <div class="flex items-center gap-4">
+                <div class="relative w-64">
+                    <input type="text" id="search-input" class="input-field text-gray-900 pl-10 pr-4 py-2 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="ค้นหาเนื้อหา...">
+                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <button id="nav-home" class="btn-secondary text-white bg-indigo-500 hover:bg-indigo-600 px-4 py-2 rounded-md">หน้าหลัก</button>
+                <button id="nav-add-content" class="btn-secondary text-white bg-green-500 hover:bg-green-600 px-4 py-2 rounded-md">เพิ่มเนื้อหาใหม่</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex flex-grow">
+        <aside id="sidebar" class="w-64 bg-gray-100 p-4 shadow-md overflow-y-auto">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">หมวดหมู่</h2>
+            <ul id="sidebar-categories" class="space-y-2">
+            </ul>
+        </aside>
+
+        <div id="main-content-area" class="flex-grow p-6 overflow-y-auto">
+            <section id="category-list-view" class="bg-white p-6 rounded-lg shadow-lg mb-6">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-800">ภาพรวมหมวดหมู่เนื้อหา</h2>
+                <div id="categories-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <p id="no-categories-message" class="text-gray-500 text-center col-span-full py-8 hidden">ยังไม่มีหมวดหมู่เนื้อหา</p>
+                </div>
+            </section>
+
+            <section id="content-list-view" class="bg-white p-6 rounded-lg shadow-lg mb-6 hidden">
+                <button id="back-to-categories" class="btn-secondary mb-4">← กลับไปหมวดหมู่</button>
+                <h2 id="current-category-title" class="text-2xl font-semibold mb-4 text-gray-800"></h2>
+                <div id="contents-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <p id="no-content-message" class="text-gray-500 text-center col-span-full py-8 hidden">ยังไม่มีเนื้อหาในหมวดหมู่นี้</p>
+                </div>
+            </section>
+
+            <section id="search-results-view" class="bg-white p-6 rounded-lg shadow-lg mb-6 hidden">
+                <button id="back-from-search" class="btn-secondary mb-4">← กลับหน้าหลัก</button>
+                <h2 class="text-2xl font-semibold mb-4 text-gray-800">ผลการค้นหา: "<span id="search-query-display"></span>"</h2>
+                <div id="search-results-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <p id="no-search-results-message" class="text-gray-500 text-center col-span-full py-8 hidden">ไม่พบเนื้อหาที่ตรงกับคำค้นหา</p>
+                </div>
+            </section>
+
+            <section id="content-detail-view" class="bg-white p-6 rounded-lg shadow-lg mb-6 hidden">
+                <button id="back-to-content-list" class="btn-secondary mb-4">← กลับไปรายการเนื้อหา</button>
+                <h2 id="detail-title" class="text-3xl font-bold mb-4 text-gray-800"></h2>
+                <p id="detail-category" class="text-sm text-indigo-600 mb-4"></p>
+                <div id="detail-content" class="text-gray-700 leading-relaxed mb-6"></div>
+                <div id="detail-code-section" class="mb-6">
+                    <h3 class="text-xl font-semibold mb-2 text-gray-800">ตัวอย่างโค้ด:</h3>
+                    <pre><code id="detail-code" class="language-csharp"></code></pre>
+                </div>
+                <div class="flex gap-4">
+                    <button id="edit-detail-btn" class="btn-primary">แก้ไขเนื้อหา</button>
+                    <button id="delete-detail-btn" class="btn-secondary bg-red-500 hover:bg-red-600 text-white">ลบเนื้อหา</button>
+                </div>
+            </section>
+
+            <section id="content-form-view" class="bg-white p-6 rounded-lg shadow-lg hidden">
+                <h2 id="form-title" class="text-2xl font-semibold mb-4 text-gray-800">เพิ่มเนื้อหาใหม่</h2>
+                <form id="content-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="hidden" id="content-id">
+                    <div>
+                        <label for="content-category" class="block text-gray-700 text-sm font-bold mb-2">หมวดหมู่:</label>
+                        <select id="content-category" class="select-field" required>
+                            </select>
+                        <input type="text" id="new-category-input" class="input-field mt-2 hidden" placeholder="หรือพิมพ์หมวดหมู่ใหม่">
+                        <button type="button" id="toggle-new-category" class="text-indigo-600 text-sm mt-1 hover:underline">เพิ่มหมวดหมู่ใหม่</button>
+                    </div>
+                    <div>
+                        <label for="content-title" class="block text-gray-700 text-sm font-bold mb-2">หัวข้อ:</label>
+                        <input type="text" id="content-title" class="input-field" placeholder="หัวข้อเนื้อหา" required>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="content-text" class="block text-gray-700 text-sm font-bold mb-2">เนื้อหา (รองรับ Markdown):</label>
+                        <textarea id="content-text" class="textarea-field h-32" placeholder="รายละเอียดเนื้อหา (ใช้ Markdown ได้)" required></textarea>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label for="content-code" class="block text-gray-700 text-sm font-bold mb-2">ตัวอย่างโค้ด (ถ้ามี):</label>
+                        <textarea id="content-code" class="textarea-field h-48" placeholder="ใส่โค้ด C# หรือ ASP.NET ที่นี่"></textarea>
+                    </div>
+                    <div class="md:col-span-2 flex gap-4 mt-2">
+                        <button type="submit" id="save-content-btn" class="btn-primary flex-1 text-lg font-bold py-2 rounded-lg shadow-md">บันทึกเนื้อหา</button>
+                        <button type="button" id="cancel-form-btn" class="btn-secondary flex-1 text-lg font-bold py-2 rounded-lg shadow-md">ยกเลิก</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    </main>
+
+    <div id="message-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl max-w-sm w-full text-center">
+            <h3 id="modal-title" class="text-2xl font-bold mb-4 text-gray-800"></h3>
+            <p id="modal-message" class="text-gray-700 mb-6"></p>
+            <button id="modal-close-btn" class="btn-primary px-6 py-2">ตกลง</button>
+        </div>
+    </div>
+
+    <script>
+        // Array to store learning content
+        let learningContent = [];
+        let currentView = 'category-list'; // Tracks current view: 'category-list', 'content-list', 'content-detail', 'content-form', 'search-results'
+        let currentCategoryId = null; // Stores the ID of the currently selected category
+        let editingContentId = null; // Stores the ID of the content being edited
+
+        // --- Utility Functions ---
+
+        // Function to display messages in a modal
+        function showMessage(title, message) {
+            $('#modal-title').text(title);
+            $('#modal-message').html(message);
+            $('#message-modal').removeClass('hidden');
+        }
+
+        // Function to close the message modal
+        $('#modal-close-btn').on('click', function() {
+            $('#message-modal').addClass('hidden');
+        });
+
+        // Function to save content to localStorage
+        function saveContent() {
+            localStorage.setItem('csharpAspNetLearningContent', JSON.stringify(learningContent));
+        }
+
+        // Function to load content from localStorage
+        function loadContent() {
+            const storedContent = localStorage.getItem('csharpAspNetLearningContent');
+            if (storedContent) {
+                learningContent = JSON.parse(storedContent);
+            } else {
+                // Initial dummy data if no content is in localStorage
+                learningContent = [{
+                    id: 1,
+                    category: 'C# Basics',
+                    title: 'บทนำสู่ C#',
+                    content: 'C# (ซีชาร์ป) เป็นภาษาโปรแกรมมิ่งที่ทันสมัย, เชิงวัตถุ (Object-Oriented) และมีความปลอดภัยทางชนิดข้อมูล (Type-safe) พัฒนาโดย Microsoft.\n\n### คุณสมบัติหลัก\n* **Object-Oriented:** รองรับ Encapsulation, Inheritance, Polymorphism\n* **Type-safe:** ตรวจสอบชนิดข้อมูลอย่างเข้มงวด\n* **Cross-platform:** ทำงานได้บน Windows, Linux, macOS ด้วย .NET Core\n\n```csharp\n// ตัวอย่าง Hello World ใน C#\nConsole.WriteLine("Hello, C#!");\n```',
+                    code: 'Console.WriteLine("Hello, C#!");'
+                }, {
+                    id: 2,
+                    category: 'C# Basics',
+                    title: 'ตัวแปรและชนิดข้อมูล',
+                    content: 'ใน C# มีชนิดข้อมูลพื้นฐาน เช่น `int` สำหรับจำนวนเต็ม, `string` สำหรับข้อความ, `bool` สำหรับค่าจริง/เท็จ และการประกาศตัวแปรใช้คีย์เวิร์ด `var` หรือระบุชนิดข้อมูลโดยตรง.\n\n```csharp\nint age = 30;\nstring name = "John Doe";\nbool isActive = true;\n\n// การใช้ var (Type Inference)\nvar price = 99.99m; // decimal\nvar message = "Welcome!"; // string\n```',
+                    code: 'int age = 30;\nstring name = "John Doe";\nbool isActive = true;'
+                }, {
+                    id: 3,
+                    category: 'ASP.NET Core',
+                    title: 'เริ่มต้นกับ ASP.NET Core',
+                    content: 'ASP.NET Core คือเฟรมเวิร์กโอเพนซอร์สสำหรับการสร้างเว็บแอปพลิเคชันที่ทันสมัยบน .NET การตั้งค่าโปรเจกต์ทำได้ง่ายด้วย CLI (Command Line Interface).\n\n### ขั้นตอนการสร้างโปรเจกต์\n1.  **ติดตั้ง .NET SDK:** ตรวจสอบให้แน่ใจว่าติดตั้ง .NET SDK แล้ว\n2.  **สร้างโปรเจกต์ใหม่:** ใช้คำสั่ง `dotnet new`\n\n```bash\ndotnet new webapp -o MyWebApp\ncd MyWebApp\ndotnet run\n```\n\nเมื่อรันคำสั่ง `dotnet run` เว็บแอปพลิเคชันจะเริ่มต้นทำงานที่ `https://localhost:5001` (หรือพอร์ตอื่นที่กำหนด).',
+                    code: 'dotnet new webapp -o MyWebApp\ncd MyWebApp\ndotnet run'
+                }, {
+                    id: 4,
+                    category: 'ASP.NET Core',
+                    title: 'MVC ใน ASP.NET Core',
+                    content: 'Model-View-Controller (MVC) เป็นรูปแบบสถาปัตยกรรมที่ใช้ในการสร้างเว็บแอปพลิเคชัน โดยแบ่งส่วนของแอปพลิเคชันออกเป็นสามส่วนหลัก:\n\n* **Model:** จัดการข้อมูลและ Logic ทางธุรกิจ\n* **View:** แสดงผล User Interface\n* **Controller:** จัดการ Input ของผู้ใช้, ประมวลผล Logic และส่งข้อมูลไปยัง View.\n\n```csharp\n// ตัวอย่าง Controller ใน ASP.NET Core MVC\npublic class HomeController : Controller\n{\n    public IActionResult Index()\n    {\n        ViewBag.Message = "Welcome to MVC!";\n        return View();\n    }\n\n    [HttpGet]\n    public IActionResult Privacy()\n    {\n        return View();\n    }\n}'
+                }, {
+                    id: 5,
+                    category: 'Database Integration',
+                    title: 'Entity Framework Core',
+                    content: 'Entity Framework Core (EF Core) เป็น ORM (Object-Relational Mapper) ที่ช่วยให้คุณสามารถทำงานกับฐานข้อมูลโดยใช้ .NET objects ได้ โดยไม่ต้องเขียน SQL query โดยตรง.\n\n### การตั้งค่า DbContext\n`DbContext` เป็นคลาสหลักใน EF Core ที่ใช้ในการโต้ตอบกับฐานข้อมูล.\n\n```csharp\nusing Microsoft.EntityFrameworkCore;\n\npublic class BloggingContext : DbContext\n{\n    public DbSet<Blog> Blogs { get; set; }\n    public DbSet<Post> Posts { get; set; }\n\n    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)\n    {\n        optionsBuilder.UseSqlServer(\n            "Server=(localdb)\\\\mssqllocaldb;Database=BloggingDB;Trusted_Connection=True;");\n    }\n}\n\n// ตัวอย่างการใช้งาน\n// using (var context = new BloggingContext())\n// {\n//     context.Blogs.Add(new Blog { Url = "http://blogs.msdn.com/adonet" });\n//     context.SaveChanges();\n// }\n```',
+                    code: 'public class BloggingContext : DbContext\n{\n    public DbSet<Blog> Blogs { get; set; }\n    public DbSet<Post> Posts { get; set; }\n}'
+                }, {
+                    id: 6,
+                    category: 'C# Basics',
+                    title: 'C# Methods',
+                    content: 'Methods are blocks of code that perform a specific task. They promote code reusability and organization. Methods can accept parameters and return a value.\n\n### Syntax\n```csharp\nAccessModifier ReturnType MethodName(ParameterType parameter1, ...) \n{\n    // Method body\n    return value; // Optional\n}\n```\n\n### Example\n```csharp\npublic class Calculator\n{\n    public int Add(int a, int b)\n    {\n        return a + b;\n    }\n\n    public void Greet(string name)\n    {\n        Console.WriteLine($"Hello, {name}!");\n    }\n}\n```',
+                    code: 'public class Calculator\n{\n    public int Add(int a, int b)\n    {\n        return a + b;\n    }\n\n    public void Greet(string name)\n    {\n        Console.WriteLine($"Hello, {name}!");\n    }\n}'
+                }, {
+                    id: 7,
+                    category: 'C# Basics',
+                    title: 'C# Classes and Objects',
+                    content: 'Classes are blueprints for creating objects. Objects are instances of classes. They encapsulate data (fields) and behavior (methods) into a single unit.\n\n### Defining a Class\n```csharp\npublic class Car\n{\n    public string Model { get; set; }\n    public int Year { get; set; }\n\n    public void Drive()\n    {\n        Console.WriteLine("Driving the car!");\n    }\n}\n```\n\n### Creating an Object\n```csharp\nCar myCar = new Car();\nmyCar.Model = "Toyota";\nmyCar.Year = 2023;\nmyCar.Drive();\n```',
+                    code: 'public class Car\n{\n    public string Model { get; set; }\n    public int Year { get; set; }\n\n    public void Drive()\n    {\n        Console.WriteLine("Driving the car!");\n    }\n}\n\nCar myCar = new Car();\nmyCar.Model = "Toyota";\nmyCar.Year = 2023;\nmyCar.Drive();'
+                }, {
+                    id: 8,
+                    category: 'C# Basics',
+                    title: 'C# Arrays',
+                    content: 'An array is a collection of variables of the same type stored in contiguous memory locations. Arrays in C# are zero-indexed.\n\n### Declaring and Initializing Arrays\n```csharp\n// Declare an array of integers\nint[] numbers = new int[5]; // Array of 5 integers\n\n// Initialize an array\nstring[] names = { "Alice", "Bob", "Charlie" };\n\n// Accessing elements\nConsole.WriteLine(names[0]); // Output: Alice\n```\n\n### Iterating Arrays\n```csharp\nforeach (string name in names)\n{\n    Console.WriteLine(name);\n}\n```',
+                    code: 'int[] numbers = new int[5];\nstring[] names = { "Alice", "Bob", "Charlie" };\nConsole.WriteLine(names[0]);\n\nforeach (string name in names)\n{\n    Console.WriteLine(name);\n}'
+                }, {
+                    id: 9,
+                    category: 'ASP.NET Core',
+                    title: 'ASP.NET Core Routing',
+                    content: 'Routing is the process of mapping incoming requests to specific action methods in controllers. ASP.NET Core supports convention-based routing and attribute routing.\n\n### Convention-Based Routing\nConfigured in `Startup.cs`.\n```csharp\napp.UseEndpoints(endpoints =>\n{\n    endpoints.MapControllerRoute(\n        name: "default",\n        pattern: "{controller=Home}/{action=Index}/{id?}");\n});\n```\n\n### Attribute Routing\nDefined directly on controllers and action methods.\n```csharp\n[Route("products")]\npublic class ProductsController : Controller\n{\n    [Route("list")]\n    public IActionResult Index()\n    {\n        return View();\n    }\n\n    [Route("details/{id}")]\n    public IActionResult Details(int id)\n    {\n        return View();\n    }\n}\n```',
+                    code: 'app.UseEndpoints(endpoints =>\n{\n    endpoints.MapControllerRoute(\n        name: "default",\n        pattern: "{controller=Home}/{action=Index}/{id?}");\n});\n\n[Route("products")]\npublic class ProductsController : Controller\n{\n    [Route("list")]\n    public IActionResult Index()\n    {\n        return View();\n    }\n\n    [Route("details/{id}")]\n    public IActionResult Details(int id)\n    {\n        return View();\n    }\n}'
+                }, {
+                    id: 10,
+                    category: 'ASP.NET Core',
+                    title: 'ASP.NET Core Web API',
+                    content: 'ASP.NET Core Web API is a framework for building HTTP services that can be consumed by a broad range of clients, including browsers and mobile devices. It\'s ideal for building RESTful APIs.\n\n### Creating a Web API Controller\n```csharp\n[ApiController]\n[Route("[controller]")]\npublic class WeatherForecastController : ControllerBase\n{\n    [HttpGet]\n    public IEnumerable<WeatherForecast> Get()\n    {\n        // ... return data ...\n    }\n\n    [HttpPost]\n    public IActionResult Post([FromBody] WeatherForecast forecast)\n    {\n        // ... handle data ...\n        return Ok();\n    }\n}\n```\n\n### Consuming the API (Example)\n```javascript\nfetch(\'/weatherforecast\')\n    .then(response => response.json())\n    .then(data => console.log(data));\n```',
+                    code: '[ApiController]\n[Route("[controller]")]\npublic class WeatherForecastController : ControllerBase\n{\n    [HttpGet]\n    public IEnumerable<WeatherForecast> Get()\n    {\n        // ... return data ...\n    }\n\n    [HttpPost]\n    public IActionResult Post([FromBody] WeatherForecast forecast)\n    {\n        // ... handle data ...\n        return Ok();\n    }\n}'
+                }, {
+                    id: 11,
+                    category: 'Database Integration',
+                    title: 'Asynchronous Programming in EF Core',
+                    content: 'Asynchronous programming is crucial for building responsive applications, especially when dealing with I/O-bound operations like database access. EF Core provides asynchronous versions of its common methods.\n\n### Example with `ToListAsync()`\n```csharp\npublic async Task<List<Blog>> GetBlogsAsync()\n{\n    using (var context = new BloggingContext())\n    {\n        return await context.Blogs.ToListAsync();\n    }\n}\n\n// Calling the async method\n// var blogs = await GetBlogsAsync();\n```\n\n### Example with `FirstOrDefaultAsync()`\n```csharp\npublic async Task<Blog> GetBlogByIdAsync(int id)\n{\n    using (var context = new BloggingContext())\n    {\n        return await context.Blogs.FirstOrDefaultAsync(b => b.BlogId == id);\n    }\n}\n```',
+                    code: 'public async Task<List<Blog>> GetBlogsAsync()\n{\n    using (var context = new BloggingContext())\n    {\n        return await context.Blogs.ToListAsync();\n    }\n}\n\npublic async Task<Blog> GetBlogByIdAsync(int id)\n{\n    using (var context = new BloggingContext())\n    {\n        return await context.Blogs.FirstOrDefaultAsync(b => b.BlogId == id);\n    }\n}'
+                }];
+                saveContent(); // Save dummy data on first load
+            }
+        }
+
+        // Function to switch views
+        function switchView(viewName) {
+            $('#main-content-area > section').addClass('hidden'); // Hide all main sections
+            $('#' + viewName + '-view').removeClass('hidden'); // Show the target section
+            currentView = viewName;
+        }
+
+        // --- Rendering Functions ---
+
+        // Function to get unique categories
+        function getUniqueCategories() {
+            const categories = learningContent.map(item => item.category);
+            return [...new Set(categories)].sort(); // Get unique and sort alphabetically
+        }
+
+        // Function to render categories in the main grid and sidebar
+        function renderCategories() {
+            const categoriesGrid = $('#categories-grid');
+            const sidebarCategoriesList = $('#sidebar-categories');
+            categoriesGrid.empty();
+            sidebarCategoriesList.empty();
+
+            const uniqueCategories = getUniqueCategories();
+
+            if (uniqueCategories.length === 0) {
+                $('#no-categories-message').removeClass('hidden');
+            } else {
+                $('#no-categories-message').addClass('hidden');
+                uniqueCategories.forEach(categoryName => {
+                    const categoryCount = learningContent.filter(item => item.category === categoryName).length;
+
+                    // Render for main grid
+                    const categoryCard = `
+                        <div class="card bg-indigo-50 p-6 rounded-lg shadow-md cursor-pointer category-card" data-category="${categoryName}">
+                            <h3 class="text-xl font-semibold text-indigo-800 mb-2">${categoryName}</h3>
+                            <p class="text-gray-600">${categoryCount} เนื้อหา</p>
+                        </div>
+                    `;
+                    categoriesGrid.append(categoryCard);
+
+                    // Render for sidebar
+                    const sidebarCategoryItem = `
+                        <li>
+                            <a href="#" class="block p-2 rounded-md hover:bg-indigo-200 text-gray-700 sidebar-category-link" data-category="${categoryName}">
+                                ${categoryName} (${categoryCount})
+                            </a>
+                        </li>
+                    `;
+                    sidebarCategoriesList.append(sidebarCategoryItem);
+                });
+
+                // Add click event listener to main grid category cards
+                $('.category-card').off('click').on('click', function() {
+                    const category = $(this).data('category');
+                    renderContentList(category);
+                });
+
+                // Add click event listener to sidebar category links
+                $('.sidebar-category-link').off('click').on('click', function(e) {
+                    e.preventDefault();
+                    const category = $(this).data('category');
+                    renderContentList(category);
+                });
+            }
+            switchView('category-list');
+        }
+
+        // Function to render content list for a specific category or search results
+        function renderContentList(categoryName, isSearch = false, searchQuery = '') {
+            currentCategoryId = categoryName; // Store selected category
+
+            let contentsToRender = [];
+            let titleText = '';
+            let noContentMessageId = '';
+            let targetGridId = '';
+
+            if (isSearch) {
+                titleText = `ผลการค้นหา: "${searchQuery}"`;
+                $('#search-query-display').text(searchQuery);
+                contentsToRender = learningContent.filter(item =>
+                    item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    item.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    item.category.toLowerCase().includes(searchQuery.toLowerCase())
+                );
+                noContentMessageId = '#no-search-results-message';
+                targetGridId = '#search-results-grid';
+                switchView('search-results');
+            } else {
+                titleText = `เนื้อหาในหมวดหมู่: ${categoryName}`;
+                contentsToRender = learningContent.filter(item => item.category === categoryName);
+                noContentMessageId = '#no-content-message';
+                targetGridId = '#contents-grid';
+                switchView('content-list');
+            }
+
+            $(isSearch ? '#search-results-view h2' : '#current-category-title').text(titleText);
+            const contentsGrid = $(targetGridId);
+            contentsGrid.empty();
+
+            if (contentsToRender.length === 0) {
+                $(noContentMessageId).removeClass('hidden');
+            } else {
+                $(noContentMessageId).addClass('hidden');
+                contentsToRender.forEach(item => {
+                    const contentCard = `
+                        <div class="card bg-gray-50 p-6 rounded-lg shadow-md cursor-pointer content-card" data-content-id="${item.id}">
+                            <h3 class="text-xl font-semibold text-gray-800 mb-2">${item.title}</h3>
+                            <p class="text-gray-600 text-sm">${item.content.substring(0, 100).replace(/\n/g, ' ')}...</p>
+                            <div class="flex gap-2 mt-4">
+                                <button class="btn-secondary text-sm view-content-btn" data-content-id="${item.id}">ดูรายละเอียด</button>
+                                <button class="btn-secondary text-sm edit-content-btn" data-content-id="${item.id}">แก้ไข</button>
+                                <button class="btn-secondary text-sm delete-content-btn bg-red-400 hover:bg-red-500 text-white">ลบ</button>
+                            </div>
+                        </div>
+                    `;
+                    contentsGrid.append(contentCard);
+                });
+
+                // Add click event listeners for content cards and buttons
+                $('.content-card').off('click').on('click', function(e) {
+                    if (!$(e.target).is('button')) { // Only open detail if not clicking a button
+                        const contentId = $(this).data('content-id');
+                        renderContentDetail(contentId);
+                    }
+                });
+                $('.view-content-btn').off('click').on('click', function() {
+                    const contentId = $(this).data('content-id');
+                    renderContentDetail(contentId);
+                });
+                $('.edit-content-btn').off('click').on('click', function() {
+                    const contentId = $(this).data('content-id');
+                    populateContentFormForEdit(contentId);
+                });
+                $('.delete-content-btn').off('click').on('click', function() {
+                    const contentId = $(this).data('content-id');
+                    deleteContent(contentId);
+                });
+            }
+        }
+
+        // Function to render content detail
+        function renderContentDetail(contentId) {
+            const contentItem = learningContent.find(item => item.id === contentId);
+            if (contentItem) {
+                $('#detail-title').text(contentItem.title);
+                $('#detail-category').text(`หมวดหมู่: ${contentItem.category}`);
+                // Use marked.js to parse Markdown content to HTML
+                $('#detail-content').html(marked.parse(contentItem.content));
+
+                if (contentItem.code) {
+                    $('#detail-code').text(contentItem.code);
+                    $('#detail-code-section').removeClass('hidden');
+                } else {
+                    $('#detail-code-section').addClass('hidden');
+                }
+                $('#edit-detail-btn').data('content-id', contentItem.id);
+                $('#delete-detail-btn').data('content-id', contentItem.id);
+                switchView('content-detail');
+            } else {
+                showMessage('ข้อผิดพลาด', 'ไม่พบเนื้อหา');
+                renderCategories(); // Fallback to category list
+            }
+        }
+
+        // --- Form Handling and CRUD Operations ---
+
+        // Function to clear the content form
+        function clearContentForm() {
+            $('#content-id').val('');
+            $('#content-category').val('');
+            $('#new-category-input').val('').addClass('hidden');
+            $('#toggle-new-category').text('เพิ่มหมวดหมู่ใหม่');
+            $('#content-title').val('');
+            $('#content-text').val('');
+            $('#content-code').val('');
+            $('#form-title').text('เพิ่มเนื้อหาใหม่');
+            $('#save-content-btn').text('บันทึกเนื้อหา');
+            editingContentId = null;
+            populateCategoryDropdown(); // Re-populate dropdown to ensure latest categories
+        }
+
+        // Function to populate category dropdown
+        function populateCategoryDropdown() {
+            const categorySelect = $('#content-category');
+            categorySelect.empty();
+            categorySelect.append('<option value="">เลือกหมวดหมู่...</option>');
+            const uniqueCategories = getUniqueCategories();
+            uniqueCategories.forEach(category => {
+                categorySelect.append(`<option value="${category}">${category}</option>`);
+            });
+        }
+
+        // Toggle new category input
+        $('#toggle-new-category').on('click', function() {
+            const newCategoryInput = $('#new-category-input');
+            if (newCategoryInput.hasClass('hidden')) {
+                newCategoryInput.removeClass('hidden');
+                $('#content-category').val(''); // Clear selection in dropdown
+                $(this).text('ใช้หมวดหมู่ที่มีอยู่');
+            } else {
+                newCategoryInput.addClass('hidden');
+                newCategoryInput.val('');
+                $(this).text('เพิ่มหมวดหมู่ใหม่');
+            }
+        });
+
+        // Function to populate the form for editing
+        function populateContentFormForEdit(contentId) {
+            const contentItem = learningContent.find(item => item.id === contentId);
+            if (contentItem) {
+                $('#content-id').val(contentItem.id);
+                $('#content-category').val(contentItem.category);
+                // Check if category exists in dropdown, if not, show new category input
+                if ($('#content-category option[value="' + contentItem.category + '"]').length === 0) {
+                    $('#new-category-input').val(contentItem.category).removeClass('hidden');
+                    $('#toggle-new-category').text('ใช้หมวดหมู่ที่มีอยู่');
+                } else {
+                    $('#new-category-input').addClass('hidden');
+                    $('#toggle-new-category').text('เพิ่มหมวดหมู่ใหม่');
+                }
+
+                $('#content-title').val(contentItem.title);
+                $('#content-text').val(contentItem.content);
+                $('#content-code').val(contentItem.code);
+                $('#form-title').text('แก้ไขเนื้อหา');
+                $('#save-content-btn').text('อัปเดตเนื้อหา');
+                editingContentId = contentId;
+                switchView('content-form');
+            } else {
+                showMessage('ข้อผิดพลาด', 'ไม่พบเนื้อหาที่ต้องการแก้ไข');
+            }
+        }
+
+        // Handle form submission (Add/Update)
+        $('#content-form').on('submit', function(e) {
+            e.preventDefault();
+
+            let category = $('#content-category').val();
+            const newCategory = $('#new-category-input').val().trim();
+
+            if (newCategory) { // If new category input is used
+                category = newCategory;
+            } else if (!category) { // If neither dropdown nor new input is filled
+                showMessage('ข้อผิดพลาด', 'กรุณาเลือกหรือระบุหมวดหมู่');
+                return;
+            }
+
+            const title = $('#content-title').val().trim();
+            const content = $('#content-text').val().trim();
+            const code = $('#content-code').val().trim();
+
+            if (!title || !content) {
+                showMessage('ข้อผิดพลาด', 'กรุณากรอกหัวข้อและเนื้อหา');
+                return;
+            }
+
+            if (editingContentId) {
+                // Update existing content
+                const contentIndex = learningContent.findIndex(item => item.id === editingContentId);
+                if (contentIndex !== -1) {
+                    learningContent[contentIndex] = {
+                        id: editingContentId,
+                        category: category,
+                        title: title,
+                        content: content,
+                        code: code
+                    };
+                    showMessage('สำเร็จ', `เนื้อหา "${title}" ได้รับการอัปเดตแล้ว`);
+                }
+            } else {
+                // Add new content
+                const newId = learningContent.length > 0 ? Math.max(...learningContent.map(item => item.id)) + 1 : 1;
+                learningContent.push({
+                    id: newId,
+                    category: category,
+                    title: title,
+                    content: content,
+                    code: code
+                });
+                showMessage('สำเร็จ', `เนื้อหา "${title}" ถูกเพิ่มแล้ว`);
+            }
+
+            saveContent();
+            clearContentForm();
+            renderCategories(); // Go back to category list after saving
+        });
+
+        // Function to delete content
+        function deleteContent(contentId) {
+            const contentItem = learningContent.find(item => item.id === contentId);
+            if (contentItem) {
+                // Use a custom modal for confirmation instead of browser's confirm()
+                $('#modal-title').text('ยืนยันการลบ');
+                $('#modal-message').html(`คุณต้องการลบเนื้อหา "${contentItem.title}" ใช่หรือไม่?`);
+                $('#modal-close-btn').text('ยกเลิก').off('click').on('click', function() {
+                    $('#message-modal').addClass('hidden');
+                    // Re-attach original close button behavior
+                    $('#modal-close-btn').off('click').on('click', function() {
+                        $('#message-modal').addClass('hidden');
+                    });
+                });
+
+                // Add a "Confirm Delete" button to the modal
+                const confirmDeleteBtn = $('<button class="btn-primary px-6 py-2 ml-4 bg-red-500 hover:bg-red-600">ลบ</button>');
+                confirmDeleteBtn.on('click', function() {
+                    learningContent = learningContent.filter(item => item.id !== contentId);
+                    saveContent();
+                    showMessage('สำเร็จ', `เนื้อหา "${contentItem.title}" ถูกลบแล้ว`);
+                    renderCategories(); // Re-render categories after deletion
+                    $('#message-modal').addClass('hidden'); // Close modal after successful delete
+                    // Reset modal button
+                    $('#modal-close-btn').text('ตกลง').off('click').on('click', function() {
+                        $('#message-modal').addClass('hidden');
+                    });
+                    $(this).remove(); // Remove the confirm delete button
+                });
+
+                $('#modal-message').after(confirmDeleteBtn);
+                $('#message-modal').removeClass('hidden');
+
+            }
+        }
+
+        // --- Search Functionality ---
+        $('#search-input').on('keyup', function() {
+            const query = $(this).val().trim();
+            if (query.length > 0) {
+                renderContentList(null, true, query); // Pass null for category, true for search
+            } else {
+                renderCategories(); // Go back to categories if search box is empty
+            }
+        });
+
+
+        // --- Navigation Event Listeners ---
+        $('#nav-home').on('click', function() {
+            $('#search-input').val(''); // Clear search input
+            renderCategories();
+        });
+
+        $('#nav-add-content').on('click', function() {
+            clearContentForm();
+            switchView('content-form');
+        });
+
+        $('#back-to-categories').on('click', function() {
+            renderCategories();
+        });
+
+        $('#back-to-content-list').on('click', function() {
+            if (currentCategoryId) {
+                renderContentList(currentCategoryId);
+            } else {
+                renderCategories(); // Fallback if currentCategoryId is somehow lost
+            }
+        });
+
+        $('#back-from-search').on('click', function() {
+            $('#search-input').val(''); // Clear search input
+            renderCategories();
+        });
+
+        $('#edit-detail-btn').on('click', function() {
+            const contentId = $(this).data('content-id');
+            populateContentFormForEdit(contentId);
+        });
+
+        $('#delete-detail-btn').on('click', function() {
+            const contentId = $(this).data('content-id');
+            deleteContent(contentId);
+        });
+
+        $('#cancel-form-btn').on('click', function() {
+            clearContentForm();
+            if (currentView === 'content-detail') { // If cancelled from edit, go back to detail
+                renderContentDetail(editingContentId);
+            } else if (currentCategoryId) { // If cancelled from add, go back to content list
+                renderContentList(currentCategoryId);
+            } else { // Otherwise, go to category list
+                renderCategories();
+            }
+        });
+
+
+        // --- Initialize the SPA ---
+        $(document).ready(function() {
+            loadContent(); // Load content from localStorage
+            populateCategoryDropdown(); // Populate dropdown initially
+            renderCategories(); // Start by showing categories
+        });
+    </script>
+</body>
+
+</html>

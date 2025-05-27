@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เครื่องมือวิเคราะห์ข้อบกพร่องระบบ POS (.NET) แบบโต้ตอบ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            /* Using a common Thai font, assuming it's available or falls back gracefully */
+        }
+        
+        .code-block {
+            background-color: #1e293b;
+            /* slate-800 */
+            color: #e2e8f0;
+            /* slate-200 */
+            padding: 1rem;
+            border-radius: 0.375rem;
+            /* rounded-md */
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.875rem;
+            /* text-sm */
+            line-height: 1.25rem;
+        }
+        
+        .code-block pre {
+            margin: 0;
+        }
+        
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        
+        .accordion-content.expanded {
+            max-height: 2000px;
+            /* Adjust as needed, should be larger than any possible content */
+            transition: max-height 0.5s ease-in;
+        }
+        
+        .sidebar-item.active {
+            background-color: #0284c7;
+            /* sky-600 */
+            color: white;
+        }
+        
+        .sidebar-item:hover {
+            background-color: #0369a1;
+            /* sky-700 */
+            color: white;
+        }
+        /* Custom scrollbar for webkit browsers */
+        
+         ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+         ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            /* slate-100 */
+        }
+        
+         ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            /* slate-400 */
+            border-radius: 4px;
+        }
+        
+         ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+            /* slate-500 */
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="bg-slate-100 text-slate-800">
+    <div id="app" class="flex flex-col min-h-screen">
+        <header class="bg-slate-800 text-white p-4 shadow-md">
+            <h1 class="text-2xl font-bold text-center">เครื่องมือวิเคราะห์ข้อบกพร่องระบบ POS (.NET)</h1>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden">
+            <aside id="sidebar" class="w-full md:w-1/4 lg:w-1/5 bg-slate-700 text-white p-4 space-y-2 overflow-y-auto">
+                <h2 class="text-lg font-semibold mb-3">หมวดหมู่ข้อบกพร่อง</h2>
+                <ul id="category-nav" class="space-y-1">
+                </ul>
+            </aside>
+
+            <main class="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+                <div id="welcome-message" class="bg-white p-6 rounded-lg shadow mb-6">
+                    <h2 class="text-xl font-semibold text-sky-700 mb-2">ยินดีต้อนรับ!</h2>
+                    <p class="text-slate-600">
+                        แอปพลิเคชันนี้จะช่วยให้คุณสำรวจข้อผิดพลาดที่พบบ่อย 50 ประการในระบบ POS ที่พัฒนาด้วย .NET จากรายงานต้นฉบับ กรุณาเลือกหมวดหมู่จากเมนูด้านซ้ายเพื่อเริ่มต้น หรือใช้แถบค้นหาด้านล่างเพื่อค้นหาข้อบกพร่องที่สนใจ
+                    </p>
+                </div>
+
+                <div class="mb-6">
+                    <input type="text" id="search-bar" placeholder="ค้นหาข้อบกพร่องด้วยชื่อหรือคำสำคัญ..." class="w-full p-3 border border-slate-300 rounded-lg shadow-sm focus:ring-sky-500 focus:border-sky-500">
+                </div>
+
+                <div id="bug-list-container">
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const bugData = [{
+            categoryName: "1. ปัญหาด้านความปลอดภัย (Security Vulnerabilities)",
+            bugs: [{
+                id: "sec-1",
+                title: "1. การจัดเก็บและเปรียบเทียบรหัสผ่านแบบ Plain Text ใน `Login` Action",
+                description: "ใน `Login` Action, `m.Password == Pass` เป็นการเปรียบเทียบรหัสผ่านที่ผู้ใช้ป้อนกับรหัสผ่านที่เก็บไว้ในฐานข้อมูลโดยตรง (ซึ่งควรจะเป็น Hash)",
+                impact: "หากฐานข้อมูลถูกบุกรุก รหัสผ่านของผู้ใช้ทั้งหมดจะถูกเปิดเผย ทำให้ผู้โจมตีสามารถเข้าถึงบัญชีผู้ใช้ได้ง่ายมาก",
+                solution: "ใช้ `PasswordHasher` เพื่อตรวจสอบรหัสผ่านที่ป้อนกับรหัสผ่านที่ Hash ไว้ในฐานข้อมูลเสมอ",
+                code: `[HttpPost]\npublic ActionResult Login(FormCollection formColl)\n{\n    string usrName = formColl["UserName"];\n    string Pass = formColl["Password"]; // รหัสผ่านที่ผู้ใช้ป้อน\n\n    if (ModelState.IsValid)\n    {\n        var cust = db.Customers.SingleOrDefault(m => m.UserName == usrName);\n\n        if (cust != null)\n        {\n            // ใช้ PasswordHasher เพื่อตรวจสอบรหัสผ่าน\n            var passwordHasher = new PasswordHasher();\n            if (passwordHasher.VerifyHashedPassword(cust.Password, Pass) == PasswordVerificationResult.Success)\n            {\n                TempShpData.UserID = cust.CustomerID;\n                Session["username"] = cust.UserName;\n                // อัปเดต LastLogin\n                cust.LastLogin = DateTime.Now;\n                db.Entry(cust).State = System.Data.Entity.EntityState.Modified;\n                db.SaveChanges();\n                return RedirectToAction("Index", "Home");\n            }\n        }\n        ModelState.AddModelError("", "Invalid username or password."); // ข้อความแสดงข้อผิดพลาดทั่วไป\n    }\n    return View();\n}`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "sec-2",
+                title: "2. การเก็บรหัสผ่านในโมเดล `Customer` เป็นสตริงธรรมดา (แม้จะ Hash ตอน Register)",
+                description: "แม้ว่า `Register` จะ Hash รหัสผ่าน แต่คุณสมบัติ `Password` ในโมเดล `Customer` ยังคงเป็น `string` ซึ่งอาจทำให้เข้าใจผิดว่าเก็บ Plain Text หรือไม่ได้ Hash อย่างถูกต้องในบางกรณี",
+                impact: "ความสับสนในการบำรุงรักษาโค้ด และความเสี่ยงที่รหัสผ่านจะถูกบันทึกโดยไม่ได้ Hash หากโค้ดส่วนอื่นไม่ได้จัดการอย่างถูกต้อง",
+                solution: "เปลี่ยนชื่อคุณสมบัติ `Password` ในโมเดล `Customer` เป็น `HashedPassword` เพื่อบ่งชี้ว่ามันถูก Hash แล้ว",
+                code: `// ก่อน: public string Password { get; set; }\npublic string HashedPassword { get; set; } // เปลี่ยนชื่อเพื่อความชัดเจน`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "sec-3",
+                title: "3. Insecure Direct Object References (IDOR) ใน `Update` Action",
+                description: "`Update(Customer cust)` รับ `Customer` object โดยตรงจาก Request หาก `CustomerID` ใน `cust` ไม่ได้ถูกตรวจสอบว่าเป็นของ User ที่ Login อยู่ ผู้โจมตีสามารถเปลี่ยน `CustomerID` เพื่ออัปเดตข้อมูลของ User คนอื่นได้",
+                impact: "ผู้ใช้สามารถแก้ไขข้อมูลของผู้อื่นได้โดยไม่ได้รับอนุญาต",
+                solution: "ตรวจสอบให้แน่ใจว่า `CustomerID` ที่ถูกส่งมาตรงกับ `UserID` ของผู้ใช้ที่ Login อยู่",
+                code: `[HttpPost]\npublic ActionResult Update(Customer cust)\n{\n    if (ModelState.IsValid)\n    {\n        // ตรวจสอบว่าผู้ใช้ที่กำลังแก้ไขคือผู้ใช้ที่ Login อยู่\n        if (TempShpData.UserID == 0 || cust.CustomerID != TempShpData.UserID)\n        {\n            return RedirectToAction("Login"); // หรือแสดง Unauthorized\n        }\n\n        var existingCustomer = db.Customers.Find(cust.CustomerID);\n        if (existingCustomer == null) { return HttpNotFound(); }\n\n        existingCustomer.First_Name = cust.First_Name;\n        existingCustomer.Last_Name = cust.Last_Name;\n        // ... อัปเดตฟิลด์อื่นๆ ...\n        db.Entry(existingCustomer).State = System.Data.Entity.EntityState.Modified;\n        db.SaveChanges();\n        Session["username"] = existingCustomer.UserName;\n        return RedirectToAction("Index", "Home");\n    }\n    return View(cust);\n}`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "sec-4",
+                title: "4. Cross-Site Request Forgery (CSRF) Vulnerability",
+                description: "ฟอร์ม POST (เช่น Register, Login, Update) ไม่มี Anti-forgery Token",
+                impact: "ผู้โจมตีสามารถสร้างเว็บไซต์ปลอมที่หลอกให้ผู้ใช้ส่งคำขอ POST ไปยังเว็บไซต์ของคุณโดยไม่รู้ตัว ทำให้เกิดการดำเนินการที่ไม่พึงประสงค์",
+                solution: "เพิ่ม `[ValidateAntiForgeryToken]` แอตทริบิวต์ใน Action Methods ที่เป็น POST และ `@Html.AntiForgeryToken()` ใน View ที่เกี่ยวข้อง",
+                code: `// AccountController.cs - Register Action:\n[HttpPost]\n[ValidateAntiForgeryToken] // เพิ่มแอตทริบิวต์นี้\npublic ActionResult Register(Customer cust)\n{\n    // ... existing logic ...\n}\n\n// ใน View (Register.cshtml):\n@using (Html.BeginForm("Register", "Account", FormMethod.Post))\n{\n    @Html.AntiForgeryToken() \n    \n    <input type="submit" value="Register" />\n}`,
+                codeLanguage: 'csharp' // Mixed, but primarily C# context
+            }, {
+                id: "sec-5",
+                title: "5. การเปิดเผยข้อมูลที่ละเอียดอ่อนในข้อความแสดงข้อผิดพลาด (Production)",
+                description: "ใน `RegisterCustomer` Action, `catch (Exception ex)` อาจส่งคืนข้อความข้อผิดพลาดที่มีรายละเอียดมากเกินไปใน Production",
+                impact: "ผู้โจมตีสามารถใช้ข้อมูลนี้เพื่อทำความเข้าใจโครงสร้างระบบและวางแผนการโจมตี",
+                solution: "ใน Production ควรแสดงข้อความแสดงข้อผิดพลาดที่เป็นมิตรต่อผู้ใช้และเป็นทั่วไปเสมอ และบันทึกรายละเอียดข้อผิดพลาดทั้งหมดใน Log Files บนเซิร์ฟเวอร์",
+                code: `catch (Exception ex)\n{\n    // Log the exception (recommended: ใช้ Logging Framework เช่น Serilog, NLog)\n    // Log.Error(ex, "Error during customer registration for username: {UserName}", cvm.UserName);\n\n    // สำหรับ Production: คืนข้อความแสดงข้อผิดพลาดทั่วไป\n    return Json(new { success = false, message = "An unexpected error occurred. Please try again later." });\n}`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "sec-6",
+                title: "6. การตรวจสอบสิทธิ์ที่ไม่เพียงพอ (Authorization)",
+                description: "ไม่มีแอตทริบิวต์ `[Authorize]` ใน Controller หรือ Action Methods ที่ควรต้องมีการ Login (เช่น `Index`, `Update`, `Logout`)",
+                impact: "ผู้ใช้ที่ไม่ Login สามารถเข้าถึงหน้าหรือดำเนินการที่ไม่ได้รับอนุญาตได้",
+                solution: "เพิ่ม `[Authorize]` แอตทริบิวต์ใน Controller หรือ Action Methods ที่ต้องการการ Login",
+                code: `// AccountController.cs:\n[Authorize] // ผู้ใช้ต้อง Login เพื่อเข้าถึง Action ใน Controller นี้\npublic class AccountController : Controller\n{\n    // ...\n}\n\n// หรือเฉพาะ Action:\npublic class HomeController : Controller\n{\n    [Authorize] // เฉพาะผู้ใช้ที่ Login เท่านั้นที่เข้าถึงได้\n    public ActionResult MyProfile()\n    {\n        // ...\n    }\n}`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "sec-7",
+                title: "7. การใช้ `FormCollection` สำหรับ Login",
+                description: "การใช้ `FormCollection` ใน `Login` Action ทำให้โค้ดไม่เป็น Type-safe และยากต่อการบำรุงรักษา",
+                impact: "ข้อผิดพลาดในการพิมพ์ชื่อฟิลด์อาจนำไปสู่ปัญหาที่ตรวจจับได้ยาก",
+                solution: "สร้าง ViewModel สำหรับ Login และใช้ Model Binding",
+                code: `// LoginViewModel.cs:\npublic class LoginViewModel\n{\n    [Required]\n    [Display(Name = "User Name")]\n    public string UserName { get; set; }\n\n    [Required]\n    [DataType(DataType.Password)]\n    public string Password { get; set; }\n}\n\n// AccountController.cs - Login Action:\n[HttpPost]\n[ValidateAntiForgeryToken]\npublic ActionResult Login(LoginViewModel model)\n{\n    // ... (logic using model.UserName and model.Password) ...\n}`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "sec-8",
+                title: "8. การจัดการ Session Timeout ที่ไม่ชัดเจน",
+                description: "หาก Session หมดอายุ `TempShpData.UserID` จะยังคงเป็นค่าเดิม (0) หรือค่าที่ไม่ได้ถูกรีเซ็ตอย่างถูกต้อง",
+                impact: "ผู้ใช้ที่ Session หมดอายุอาจยังคงเห็นข้อมูลเก่า หรือต้อง Login ใหม่โดยไม่ได้รับข้อความแจ้งที่ชัดเจน",
+                solution: "ใช้ ASP.NET Identity Framework เพื่อจัดการ Session และ Authentication Cookie อย่างเหมาะสม หรือตรวจสอบ Session State อย่างสม่ำเสมอใน Global.asax",
+                code: `// Global.asax.cs:\nprotected void Session_End(object sender, EventArgs e)\n{\n    // เมื่อ Session หมดอายุ ให้เคลียร์ข้อมูล static ที่เกี่ยวข้องกับผู้ใช้\n    // TempShpData.UserID = 0; // This class should be removed\n    // TempShpData.items = null;\n    // Session.Clear(); // Alternative if TempShpData is removed\n    // อาจจะ Log การหมดอายุของ Session\n}`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "sec-9",
+                title: "9. การอนุญาตให้ `CustomerID` ถูกส่งมาจาก Client ใน `RegisterCustomer`",
+                description: "ใน `RegisterCustomer` Action, `CustomerID = cvm.CustomerID` ถูกตั้งค่าจาก ViewModel",
+                impact: "หากผู้โจมตีแก้ไข `CustomerID` ใน Request อาจทำให้เกิดการเขียนทับข้อมูลลูกค้าที่มีอยู่ หรือ Primary Key Violation",
+                solution: "`CustomerID` ควรถูกสร้างโดยฐานข้อมูล (Identity Column) และไม่ควรถูกตั้งค่าจาก Client ในการสร้างใหม่",
+                code: `Customer c = new Customer\n{\n    // CustomerID = cvm.CustomerID, // ลบบรรทัดนี้ออก\n    First_Name = cvm.First_Name,\n    // ...\n};`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "sec-10",
+                title: "10. การอนุญาตให้เปลี่ยน `UserName` ใน `Update` Action โดยไม่ตรวจสอบความซ้ำซ้อน",
+                description: "หาก `Update` Action อนุญาตให้ผู้ใช้เปลี่ยน `UserName` โดยตรง และไม่มีการตรวจสอบว่า `UserName` ใหม่ซ้ำกับที่มีอยู่แล้วหรือไม่",
+                impact: "อาจทำให้เกิด `Duplicate Key` error ในฐานข้อมูล หรือผู้ใช้หลายคนมี `UserName` เดียวกัน",
+                solution: "หากอนุญาตให้เปลี่ยน `UserName` ต้องมีการตรวจสอบความซ้ำซ้อนเช่นเดียวกับตอน Register",
+                code: `// ใน Update Action:\nif (existingCustomer.UserName != cust.UserName)\n{\n    if (db.Customers.Any(c => c.UserName == cust.UserName && c.CustomerID != cust.CustomerID))\n    {\n        ModelState.AddModelError("UserName", "Username already exists.");\n        return View(cust);\n    }\n    existingCustomer.UserName = cust.UserName;\n}`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "sec-11",
+                title: "11. การจัดการ `PicturePath` ใน `Update` Action",
+                description: "`Update(Customer cust)` ไม่ได้จัดการการอัปโหลดรูปภาพใหม่ผ่าน `HttpPostedFileBase` ใน `CustomerVM`",
+                impact: "ผู้ใช้ไม่สามารถเปลี่ยนรูปโปรไฟล์ได้ผ่าน Action นี้",
+                solution: "สร้าง `CustomerVM` สำหรับ `Update` Action และเพิ่ม `HttpPostedFileBase Picture` เพื่อจัดการการอัปโหลดรูปภาพ",
+                code: `// CustomerVM.cs:\npublic class CustomerVM\n{\n    // ... existing properties ...\n    public HttpPostedFileBase Picture { get; set; }\n}\n\n// AccountController.cs - Update Action (ใช้ CustomerVM):\n[HttpPost]\n[ValidateAntiForgeryToken]\npublic ActionResult Update(CustomerVM cvm) // เปลี่ยนเป็น CustomerVM\n{\n    // ... (logic for handling cvm.Picture) ...\n}`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "sec-12",
+                title: "12. Path Traversal ในการบันทึกรูปภาพ",
+                description: "แม้จะใช้ `Path.Combine` และ `Guid.NewGuid()` แต่หากชื่อไฟล์ต้นฉบับ (จาก `cvm.Picture.FileName`) มีอักขระ Path Traversal (เช่น `../`) อาจทำให้ไฟล์ถูกบันทึกนอกไดเรกทอรีที่ตั้งใจไว้",
+                impact: "ผู้โจมตีสามารถอัปโหลดไฟล์ไปยังตำแหน่งที่ไม่ได้รับอนุญาตบนเซิร์ฟเวอร์ ซึ่งอาจนำไปสู่การรันโค้ดที่เป็นอันตราย",
+                solution: "ใช้ `Path.GetFileName()` เพื่อแยกชื่อไฟล์อย่างปลอดภัยก่อนที่จะรวม Path",
+                code: `string fileName = Path.GetFileName(cvm.Picture.FileName); // ดึงเฉพาะชื่อไฟล์\nstring filePath = Path.Combine("~/Images", Guid.NewGuid().ToString() + Path.GetExtension(fileName));`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "sec-13",
+                title: "13. การใช้ `HttpPostedFileBase` โดยตรงใน ViewModel สำหรับการอัปโหลด",
+                description: "`HttpPostedFileBase` เป็นส่วนหนึ่งของ `System.Web` ซึ่งเป็นเทคโนโลยีเก่าสำหรับ ASP.NET MVC 5 และอาจไม่เข้ากันได้ดีกับ ASP.NET Core หากมีการย้ายไปในอนาคต",
+                impact: "ข้อจำกัดในการย้ายไปใช้ Framework ที่ใหม่กว่า",
+                solution: "(สำหรับ ASP.NET Core) ใช้ `IFormFile` แทน `HttpPostedFileBase`",
+                code: `// สำหรับ ASP.NET Core - CustomerVM.cs:\n// using Microsoft.AspNetCore.Http;\n// public IFormFile Picture { get; set; }`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "sec-14",
+                title: "14. การจัดการ `status` ของ Customer",
+                description: "โมเดล `Customer` มีคุณสมบัติ `status` เป็น `string` และ `CustomerVM` ก็มีเช่นกัน แต่ไม่มีการตรวจสอบความถูกต้องของค่าที่ถูกต้อง (เช่น \"Active\", \"Inactive\")",
+                impact: "ข้อมูลสถานะไม่สอดคล้องกัน ยากต่อการกรองหรือรายงาน",
+                solution: "ใช้ `enum` สำหรับสถานะ หรือใช้ `[RegularExpression]` เพื่อบังคับใช้ค่าที่อนุญาต",
+                code: `// Customer.cs:\npublic enum CustomerStatus { Active, Inactive, Banned }\npublic CustomerStatus status { get; set; } = CustomerStatus.Active;`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "sec-15",
+                title: "15. การจัดการ `Notes` ใน `Customer` และ `CustomerVM`",
+                description: "`Notes` เป็น `string` แต่ไม่มีการจำกัดความยาวหรือการ Sanitization",
+                impact: "อาจทำให้เกิด XSS หากแสดงผลโดยไม่ Encode หรือฐานข้อมูลล้นหากมีข้อความยาวมาก",
+                solution: "เพิ่ม `[StringLength]` และตรวจสอบให้แน่ใจว่ามีการ Encode เมื่อแสดงผล",
+                code: `// Customer.cs:\n[StringLength(1000, ErrorMessage = "Notes cannot exceed 1000 characters.")]\npublic string Notes { get; set; }`,
+                codeLanguage: 'csharp'
+            }]
+        }, {
+            categoryName: "2. ปัญหาการจัดการสถานะและ Session (Session & State Management Issues)",
+            bugs: [{
+                id: "session-16",
+                title: "16. การใช้ `static` class `TempShpData` สำหรับข้อมูลผู้ใช้",
+                description: "`TempShpData.UserID` และ `TempShpData.items` เป็น `static`",
+                impact: "นี่คือช่องโหว่ที่ร้ายแรงที่สุด ข้อมูล `static` ใช้ร่วมกันทั่วทั้งแอปพลิเคชัน ทำให้ข้อมูลผู้ใช้คนหนึ่งอาจถูกเขียนทับโดยผู้ใช้อีกคนหนึ่ง หรือผู้ใช้คนหนึ่งอาจเห็นข้อมูลของอีกคนหนึ่ง",
+                solution: "**ห้ามใช้ `static` class สำหรับข้อมูลผู้ใช้เด็ดขาด** ควรใช้ Session State, ASP.NET Identity, หรือฐานข้อมูลเพื่อเก็บข้อมูลเฉพาะผู้ใช้",
+                code: `// ลบคลาส TempShpData ออกทั้งหมด\n// public static class TempShpData { ... } // ลบออก!\n\n// ใน AccountController (และ Controller อื่นๆ ที่เกี่ยวข้อง):\n// ก่อน: TempShpData.UserID = cust.CustomerID;\n// แก้ไข:\nSession["UserID"] = cust.CustomerID; // ใช้ Session["UserID"] แทน`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "session-17",
+                title: "17. การตรวจสอบ `TempShpData.UserID == 0` เป็นตัวบ่งชี้การ Login",
+                description: "ใน `Index` Action, `if (TempShpData.UserID == 0)` ถูกใช้เพื่อตรวจสอบว่าผู้ใช้ Login อยู่หรือไม่",
+                impact: "หาก `TempShpData` ถูกแก้ไขโดยผู้ใช้คนอื่น (เนื่องจากเป็น `static`) ผู้ใช้คนหนึ่งอาจถูก Redirect ไปหน้า Login โดยไม่จำเป็น หรือเห็นข้อมูลของผู้อื่น",
+                solution: "ใช้ `User.Identity.IsAuthenticated` และ `User.Identity.GetUserId()` จาก ASP.NET Identity Framework หรือตรวจสอบค่าใน Session อย่างถูกต้อง",
+                code: `// AccountController.cs - Index Action:\npublic ActionResult Index()\n{\n    // ...\n    if (Session["UserID"] == null || (int)Session["UserID"] == 0)\n    {\n        return RedirectToAction("Login");\n    }\n    // ...\n}`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "session-18",
+                title: "18. การใช้ `Session[\"username\"]` คู่กับ `TempShpData.UserID`",
+                description: "มีการใช้ทั้ง `Session[\"username\"]` และ `TempShpData.UserID` เพื่อเก็บข้อมูลผู้ใช้",
+                impact: "ความซ้ำซ้อนของข้อมูล ความสับสนในการบำรุงรักษา และอาจเกิดความไม่สอดคล้องกันหากค่าทั้งสองไม่ตรงกัน",
+                solution: "เลือกใช้กลไกเดียวในการจัดการ Authentication State เช่น ASP.NET Identity หรือ Session State ที่สอดคล้องกัน",
+                code: `// แก้ไขตาม Bug 16 โดยใช้ Session["UserID"] และ Session["username"] อย่างสอดคล้องกัน`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "session-19",
+                title: "19. การไม่เคลียร์ Session หรือ Authentication Cookie อย่างสมบูรณ์เมื่อ Logout",
+                description: "แม้จะเคลียร์ `Session[\"username\"]` และ `TempShpData.UserID` แต่หากใช้ ASP.NET Identity หรือ Forms Authentication ควรมีการ Sign Out อย่างเป็นทางการ",
+                impact: "Authentication Cookie อาจยังคงอยู่ ทำให้ผู้ใช้สามารถเข้าถึงหน้าที่มีการป้องกันได้โดยไม่ต้อง Login ใหม่",
+                solution: "ใช้ `AuthenticationManager.SignOut()` หรือ `FormsAuthentication.SignOut()`",
+                code: `// AccountController.cs - Logout Action:\npublic ActionResult Logout()\n{\n    // ถ้าใช้ Forms Authentication\n    // FormsAuthentication.SignOut();\n\n    // ถ้าใช้ ASP.NET Identity (OWIN)\n    // HttpContext.GetOwinContext().Authentication.SignOut(DefaultAuthenticationTypes.ApplicationCookie);\n\n    Session.Clear(); // เคลียร์ Session ทั้งหมด\n    Session.Abandon(); // ยกเลิก Session\n    return RedirectToAction("Index", "Home");\n}`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "session-20",
+                title: "20. การใช้ `TempData` สำหรับข้อความแสดงความสำเร็จในการลงทะเบียน (อาจหายไป)",
+                description: "`TempData[\"RegistrationSuccess\"]` ใช้สำหรับส่งข้อความไปยัง Redirect Action",
+                impact: "`TempData` จะอยู่ได้แค่ 1 Request เท่านั้น หากมีการ Redirect เพิ่มเติม หรือมีการ Refresh หน้า ข้อความอาจหายไปก่อนที่ผู้ใช้จะเห็น",
+                solution: "หากข้อความสำคัญและต้องการให้คงอยู่แม้มีการ Refresh อาจใช้ Session หรือ Query String",
+                code: `// แทนที่จะเป็น TempData\n// Session["RegistrationSuccessMessage"] = "Registration successful! Please log in.";\n// ใน View ที่แสดงข้อความ:\n// @if (Session["RegistrationSuccessMessage"] != null) { ... }`,
+                codeLanguage: 'csharp'
+            }]
+        }, {
+            categoryName: "3. ปัญหาประสิทธิภาพ (Performance Issues)",
+            bugs: [{
+                id: "perf-21",
+                title: "21. การสร้าง `MyEcommerceDbContext` ใหม่ในทุก Request",
+                description: "`MyEcommerceDbContext db = new MyEcommerceDbContext();` ถูกสร้างขึ้นโดยตรงใน Controller",
+                impact: "ประสิทธิภาพลดลงเนื่องจากการสร้าง Connection และ Context ใหม่ในแต่ละ Request",
+                solution: "ใช้ Dependency Injection (DI) เพื่อจัดการ Lifetime ของ DbContext",
+                code: `// ใน Controller:\nprivate readonly MyEcommerceDbContext _db;\npublic AccountController(MyEcommerceDbContext dbContext)\n{\n    _db = dbContext;\n}`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "perf-22",
+                title: "22. การเรียก `GetUser(cust.UserName)` หลัง `db.SaveChanges()` ใน `Register` Action",
+                description: "หลังจากบันทึก `cust` มีการเรียก `GetUser(cust.UserName)` เพื่อดึง `CustomerID` ซึ่งซ้ำซ้อน",
+                impact: "Query ฐานข้อมูลที่ไม่จำเป็น",
+                solution: "`CustomerID` ของ `cust` object จะถูกเติมโดย EF หลังจาก `db.SaveChanges()`",
+                code: `// ใน Register Action:\ndb.Customers.Add(cust);\ndb.SaveChanges(); // CustomerID จะถูกเติมที่นี่\nSession["UserID"] = cust.CustomerID; // ใช้ CustomerID ที่ได้จาก DB`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "perf-23",
+                title: "23. การ Query ฐานข้อมูลซ้ำซ้อนใน `Login` Action",
+                description: "Query `db.Customers.SingleOrDefault(...)` แล้วเข้าถึง `cust.Password` อาจโหลดข้อมูลที่ไม่จำเป็น",
+                impact: "ประสิทธิภาพลดลงเล็กน้อย",
+                solution: "ใช้ `Select` เพื่อโหลดเฉพาะคุณสมบัติที่จำเป็น",
+                code: `var custData = db.Customers\n                 .Where(m => m.UserName == model.UserName)\n                 .Select(m => new { m.CustomerID, m.UserName, m.Password, m.LastLogin })\n                 .SingleOrDefault();`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "perf-24",
+                title: "24. การโหลดรูปภาพขนาดใหญ่โดยไม่มีการปรับขนาดหรือ CDN",
+                description: "บันทึกรูปภาพที่อัปโหลดโดยตรงโดยไม่มีการปรับขนาดหรือบีบอัด",
+                impact: "โหลดหน้าเว็บช้า, ใช้แบนด์วิดท์มาก, ใช้พื้นที่จัดเก็บมาก",
+                solution: "ปรับขนาดรูปภาพเมื่ออัปโหลด และพิจารณาใช้ CDN",
+                code: `// ใน RegisterCustomer Action:\n// string thumbnailPath = Path.Combine(Server.MapPath("~/Images/Customers/Thumbnails"), uniqueFileName);\n// using (var image = Image.Load(cvm.Picture.InputStream))\n// {\n//     image.Mutate(x => x.Resize(new ResizeOptions { Size = new Size(150, 150), Mode = ResizeMode.Crop }));\n//     image.Save(thumbnailPath);\n// }`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "perf-25",
+                title: "25. การไม่ใช้ AsNoTracking() สำหรับการ Query ข้อมูลที่ไม่ต้องการติดตาม",
+                description: "EF ยังคงติดตาม Entity ที่โหลดมาแม้จะไม่ได้แก้ไข",
+                impact: "ใช้หน่วยความจำมากขึ้น, อาจเกิดปัญหา Concurrency",
+                solution: "ใช้ `.AsNoTracking()` สำหรับ Query ที่เป็น Read-only",
+                code: `var cust = db.Customers.AsNoTracking()\n                 .FirstOrDefault(c => c.UserName == _usrName);`,
+                codeLanguage: 'csharp'
+            }]
+        }, {
+            categoryName: "4. ปัญหาการจัดการข้อผิดพลาดและการบันทึก (Error Handling & Logging Issues)",
+            bugs: [{
+                id: "error-26",
+                title: "26. การขาด Logging สำหรับข้อผิดพลาดที่ไม่ได้ถูกจัดการ",
+                description: "แม้จะมี `try-catch` แต่ไม่มีการบันทึก Exception ลง Log File",
+                impact: "ยากต่อการวิเคราะห์และแก้ไขปัญหาใน Production",
+                solution: "ใช้ Logging Framework (เช่น Serilog, NLog) เพื่อบันทึก Exception",
+                code: `catch (Exception ex)\n{\n    // ** เพิ่ม Logging ที่นี่ **\n    // Log.Error(ex, "Error during customer registration for username: {UserName}", cvm.UserName);\n    return Json(new { success = false, message = "An error occurred." });\n}`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "error-27",
+                title: "27. การไม่จัดการ `DbUpdateException` หรือ `DbUpdateConcurrencyException` โดยเฉพาะ",
+                description: "หากเกิด `DbUpdateException` จากข้อมูลซ้ำซ้อน ข้อความแสดงข้อผิดพลาดอาจไม่ชัดเจน",
+                impact: "ผู้ใช้เห็นข้อความข้อผิดพลาดทั่วไป",
+                solution: "ดักจับ `DbUpdateException` และตรวจสอบ `InnerException`",
+                code: `catch (System.Data.Entity.Infrastructure.DbUpdateException ex)\n{\n    if (ex.InnerException?.InnerException?.Message.Contains("UNIQUE KEY constraint") == true)\n    {\n        ModelState.AddModelError("UserName", "Username already exists.");\n    }\n    // ...\n}`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "error-28",
+                title: "28. การไม่จัดการ `HttpPostedFileBase` เป็น `null` หรือไม่มีไฟล์ใน `RegisterCustomer`",
+                description: "หาก `cvm.Picture` เป็น `null` และ `PicturePath` ใน DB ไม่สามารถเป็น Null ได้ จะเกิดข้อผิดพลาด",
+                impact: "การลงทะเบียนล้มเหลวหากผู้ใช้ไม่ได้อัปโหลดรูปภาพ",
+                solution: "ตรวจสอบว่า `PicturePath` เป็น `Nullable<string>` หรือไม่ หรือบังคับอัปโหลด/กำหนดค่าเริ่มต้น",
+                code: `// Customer.cs:\n// public string PicturePath { get; set; } // Nullable\n\n// CustomerVM.cs:\n// [Required(ErrorMessage = "Profile picture is required.")]\n// public HttpPostedFileBase Picture { get; set; }`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "error-29",
+                title: "29. ข้อความแสดงข้อผิดพลาดของ `ModelState.AddModelError` ไม่แสดงผลใน View",
+                description: "ข้อความที่เพิ่มด้วย `ModelState.AddModelError` ไม่ปรากฏหากไม่ได้ใช้ `Html.ValidationSummary()` หรือ `Html.ValidationMessageFor()`",
+                impact: "ผู้ใช้ไม่เห็นข้อความแจ้งข้อผิดพลาด",
+                solution: "ตรวจสอบให้แน่ใจว่า View มี `Html.ValidationSummary()` หรือ `Html.ValidationMessageFor()`",
+                code: `@Html.ValidationSummary(true, "", new { @class = "text-danger" })\n@Html.ValidationMessageFor(model => model.UserName, "", new { @class = "text-danger" })`,
+                codeLanguage: 'html'
+            }, {
+                id: "error-30",
+                title: "30. การไม่จัดการ `db.Customers.Find(TempShpData.UserID)` เป็น `null` ใน `Index` Action",
+                description: "หาก `TempShpData.UserID` มีค่า แต่ไม่มี Customer ด้วย ID นั้นใน DB, `Find()` จะคืน `null`",
+                impact: "`NullReferenceException`",
+                solution: "ตรวจสอบ `null` หลังจาก `Find()`",
+                code: `int currentUserId = (int)Session["UserID"];\nvar usr = db.Customers.Find(currentUserId);\nif (usr == null) // ตรวจสอบ null\n{\n    // ... handle ...\n    return RedirectToAction("Login");\n}`,
+                codeLanguage: 'csharp'
+            }]
+        }, {
+            categoryName: "5. ปัญหาการตรวจสอบความถูกต้องของข้อมูล (Data Validation Issues)",
+            bugs: [{
+                id: "validation-31",
+                title: "31. ขาด `[Required]` สำหรับฟิลด์สตริงที่สำคัญใน Entity Models",
+                description: "โมเดล Entity หลายตัวขาด `[Required]` สำหรับฟิลด์ที่จำเป็น",
+                impact: "ข้อมูลไม่สมบูรณ์, อาจเกิดข้อผิดพลาดภายหลัง",
+                solution: "เพิ่ม `[Required]` ให้กับคุณสมบัติที่จำเป็นทั้งหมดใน Entity Models",
+                code: `// Customer.cs:\n[Required(ErrorMessage = "First Name is required.")]\n[Display(Name = "First Name")]\npublic string First_Name { get; set; }`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "validation-32",
+                title: "32. `DataType.PhoneNumber` อนุญาตตัวอักษรในบางกรณี",
+                description: "`DataType.PhoneNumber` ไม่ได้บังคับให้เป็นตัวเลข 100%",
+                impact: "ข้อมูลหมายเลขโทรศัพท์ที่ไม่ถูกต้อง",
+                solution: "ใช้ `[RegularExpression]` ที่เข้มงวดขึ้น",
+                code: `[Required]\n[RegularExpression(@"^(\\+?\\d{1,3}[- ]?)?\\d{10}$", ErrorMessage = "Please enter a valid phone number format.")]\npublic string Phone { get; set; }`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "validation-33",
+                title: "33. `RegularExpression` สำหรับชื่ออนุญาตเฉพาะตัวอักษรภาษาอังกฤษ",
+                description: "`[RegularExpression(@\"^[a-zA-Z\\s]+$\")]` จะไม่อนุญาตตัวอักษรภาษาไทย",
+                impact: "ผู้ใช้ชาวไทยไม่สามารถลงทะเบียนชื่อของตนเองได้",
+                solution: "ขยาย Regular Expression ให้รวมตัวอักษร Unicode",
+                code: `[Required]\n[RegularExpression(@"^[\\p{L}\\s]+$", ErrorMessage = "Name contains only letters and spaces.")]\npublic string First_Name { get; set; }`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "validation-34",
+                title: "34. `DateofBirth` ใน VM เป็น `[Required]` แต่ใน Entity เป็น `Nullable<DateTime>`",
+                description: "ความไม่สอดคล้องกันระหว่าง VM และ Entity",
+                impact: "อาจทำให้เกิดค่า `null` ใน DB สำหรับฟิลด์ที่ควรจะเป็น `Required`",
+                solution: "ทำให้ `DateofBirth` ใน Entity Model เป็น `DateTime` ที่ไม่สามารถเป็น Null ได้หากจำเป็น",
+                code: `// Customer.cs:\n[Required]\npublic System.DateTime DateofBirth { get; set; }`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "validation-35",
+                title: "35. `PostalCode` และ `PostCode` ไม่มีรูปแบบการตรวจสอบความถูกต้องเฉพาะ",
+                description: "ฟิลด์เป็น `string` แต่ไม่มีการตรวจสอบรูปแบบรหัสไปรษณีย์",
+                impact: "ข้อมูลรหัสไปรษณีย์ที่ไม่ถูกต้อง",
+                solution: "เพิ่ม `[RegularExpression]` สำหรับรูปแบบที่คาดหวัง",
+                code: `[Display(Name = "Postal Code")]\n[RegularExpression(@"^\\d{5}$", ErrorMessage = "Postal Code must be 5 digits.")]\npublic string PostalCode { get; set; }`,
+                codeLanguage: 'csharp'
+            }]
+        }, {
+            categoryName: "6. ปัญหาตรรกะทางธุรกิจและกรณีขอบ (Business Logic & Edge Cases)",
+            bugs: [{
+                id: "logic-36",
+                title: "36. การจัดการ `LastLogin` และ `Created` ใน `Customer` Model",
+                description: "`LastLogin` และ `Created` เป็น `Nullable<DateTime>` และไม่ได้ถูกตั้งค่าอย่างสม่ำเสมอ",
+                impact: "ข้อมูลเวลาไม่ถูกต้องหรือขาดหายไป",
+                solution: "ตั้งค่า `Created` เมื่อสร้าง Customer และ `LastLogin` เมื่อ Login สำเร็จ",
+                code: `// ใน Register Action:\ncust.Created = DateTime.Now;\n\n// ใน Login Action:\ncustToUpdate.LastLogin = DateTime.Now;`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "logic-37",
+                title: "37. การจัดการ `status` ของ Customer ที่ไม่ชัดเจน",
+                description: "`Customer.status` เป็น `string` แต่ไม่มีการกำหนดค่าเริ่มต้นหรือการจัดการสถานะที่ชัดเจน",
+                impact: "ผู้ใช้ที่ลงทะเบียนใหม่อาจไม่มีสถานะเริ่มต้น",
+                solution: "กำหนดค่าเริ่มต้นสำหรับ `status` เมื่อสร้าง Customer ใหม่",
+                code: `Customer c = new Customer\n{\n    // ...\n    status = "Active", // กำหนดสถานะเริ่มต้น\n    // ...\n};`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "logic-38",
+                title: "38. การไม่จัดการ `Password` ใน `Update` Action",
+                description: "`Update(Customer cust)` ไม่ได้มีฟิลด์สำหรับเปลี่ยนรหัสผ่าน",
+                impact: "ผู้ใช้ไม่สามารถเปลี่ยนรหัสผ่านได้",
+                solution: "สร้าง Action แยกต่างหากสำหรับ \"Change Password\"",
+                code: `// ดูตัวอย่าง ChangePasswordViewModel และ ChangePassword Action ในเอกสารเต็ม`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "logic-39",
+                title: "39. การจัดการ `Gender` เป็น `string` ที่ไม่มีการตรวจสอบค่าที่อนุญาต",
+                description: "`Customer.Gender` เป็น `string` และไม่มีการตรวจสอบค่าที่ป้อน",
+                impact: "ข้อมูลที่ไม่สอดคล้องกัน",
+                solution: "ใช้ `enum` หรือ `[RegularExpression]`",
+                code: `// Customer.cs:\npublic enum GenderType { Male, Female, Other }\npublic GenderType Gender { get; set; }\n\n// CustomerVM.cs:\n[Required]\npublic GenderType Gender { get; set; }`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "logic-40",
+                title: "40. การไม่จัดการ `HttpPostedFileBase Picture` เมื่อ Update โดยที่ผู้ใช้ไม่ได้อัปโหลดรูปใหม่",
+                description: "หากผู้ใช้ไม่เลือกไฟล์ใหม่ `cvm.Picture` จะเป็น `null` และโค้ดอาจล้าง `PicturePath` เดิม",
+                impact: "รูปโปรไฟล์ของผู้ใช้หายไป",
+                solution: "ตรวจสอบว่ามีการอัปโหลดไฟล์ใหม่หรือไม่ก่อนประมวลผล และคง `PicturePath` เดิมไว้หากไม่มีไฟล์ใหม่ (ดู Bug 11)",
+                code: `// ดูการแก้ไขใน Bug 11 สำหรับการจัดการ PicturePath ใน Update Action`,
+                codeLanguage: 'csharp'
+            }]
+        }, {
+            categoryName: "7. ปัญหาการปรับใช้และสภาพแวดล้อม (Deployment & Environment Issues)",
+            bugs: [{
+                id: "deploy-41",
+                title: "41. Connection String ไม่ถูกต้องใน Production",
+                description: "Connection string ใน `web.config` อาจชี้ไปที่ฐานข้อมูล Development",
+                impact: "ระบบไม่สามารถเชื่อมต่อกับฐานข้อมูลได้",
+                solution: "ตรวจสอบและแก้ไข `connectionStrings` ใน `web.config` ให้ถูกต้องสำหรับ Production",
+                code: `<connectionStrings>\n    <add name="MyEcommerceDbContext" connectionString="Data Source=PROD_SERVER;..." />\n</connectionStrings>`,
+                codeLanguage: 'xml'
+            }, {
+                id: "deploy-42",
+                title: "42. สิทธิ์การเข้าถึงโฟลเดอร์รูปภาพไม่ถูกต้อง",
+                description: "โฟลเดอร์ `~/Images` ไม่มีสิทธิ์เขียนสำหรับ Process ของ IIS",
+                impact: "การอัปโหลดรูปภาพล้มเหลว",
+                solution: "ให้สิทธิ์ \"Modify\" หรือ \"Write\" แก่ IIS_IUSRS หรือ Application Pool Identity",
+                code: `// เป็นการตั้งค่าบนเซิร์ฟเวอร์ ไม่ใช่โค้ด`,
+                codeLanguage: 'text'
+            }, {
+                id: "deploy-43",
+                title: "43. การตั้งค่า `customErrors` ใน `web.config` ไม่ถูกต้องสำหรับ Production",
+                description: "ใน Production ควรตั้งค่า `customErrors mode=\"On\"`",
+                impact: "ผู้ใช้อาจเห็น Stack Trace หรือข้อผิดพลาดทางเทคนิค",
+                solution: "ตั้งค่า `customErrors mode=\"On\"` ใน `web.config`",
+                code: `<system.web>\n    <customErrors mode="On" defaultRedirect="~/Error/GenericError" />\n</system.web>`,
+                codeLanguage: 'xml'
+            }, {
+                id: "deploy-44",
+                title: "44. การไม่เปิดใช้งานหรือกำหนดค่า Logging Framework ใน Production",
+                description: "Logging Framework อาจไม่ได้ถูกกำหนดค่าให้บันทึก Log ใน Production",
+                impact: "ไม่สามารถตรวจสอบปัญหาที่เกิดขึ้นใน Production ได้",
+                solution: "กำหนดค่า Logging Framework ให้เหมาะสมสำหรับ Production",
+                code: `// ตัวอย่าง Serilog.config:\n<add key="serilog:write-to:File.path" value="C:\\Logs\\MyApp-.txt" />`,
+                codeLanguage: 'xml'
+            }, {
+                id: "deploy-45",
+                title: "45. ปัญหา Timezone ใน Production Server",
+                description: "หาก `DateTime.Now` ถูกใช้และ Production Server อยู่ใน Timezone ที่แตกต่างกัน",
+                impact: "ข้อมูลเวลาไม่ถูกต้อง",
+                solution: "จัดเก็บ `DateTime` เป็น UTC เสมอในฐานข้อมูล (ใช้ `DateTime.UtcNow`) และแปลงเป็น Local Timezone เมื่อแสดงผล",
+                code: `cust.Created = DateTime.UtcNow;\n// แสดงผล: @Model.Created.ToLocalTime().ToString("dd/MM/yyyy HH:mm")`,
+                codeLanguage: 'csharp'
+            }]
+        }, {
+            categoryName: "8. ปัญหาอื่นๆ และข้อผิดพลาดทั่วไป (Other & General Issues)",
+            bugs: [{
+                id: "other-46",
+                title: "46. การไม่เคลียร์ `ModelState` ใน Action ที่มีการ Redirect",
+                description: "หาก `ModelState` มีข้อผิดพลาดและมีการ Redirect ข้อผิดพลาดอาจถูกส่งผ่าน `TempData`",
+                impact: "ผู้ใช้เห็นข้อความข้อผิดพลาดที่ไม่เกี่ยวข้อง",
+                solution: "เคลียร์ `ModelState` ก่อน Redirect หากไม่ต้องการส่งข้อผิดพลาดไป",
+                code: `db.SaveChanges();\nModelState.Clear(); // เคลียร์ ModelState ก่อน Redirect\nreturn RedirectToAction("Login");`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "other-47",
+                title: "47. การใช้ `db.Customers.Find()` ใน `GetUser` Action",
+                description: "`Find()` ใช้สำหรับ Primary Key เท่านั้น แต่ `GetUser` รับ `_usrName`",
+                impact: "`Find()` จะไม่ทำงานตามที่คาดหวัง",
+                solution: "ใช้ `FirstOrDefault()` หรือ `SingleOrDefault()` กับ `Where` clause",
+                code: `var cust = db.Customers.AsNoTracking()\n                 .FirstOrDefault(c => c.UserName == _usrName);`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "other-48",
+                title: "48. การไม่ตรวจสอบ `GetDefaultData()`",
+                description: "เมธอด `GetDefaultData()` ถูกเรียกใน `Index` Action แต่ไม่ได้ให้โค้ดมา",
+                impact: "หากเมธอดนี้มีข้อผิดพลาด จะส่งผลกระทบต่อ `Index` Action",
+                solution: "ตรวจสอบโค้ดของ `GetDefaultData()` และแก้ไขปัญหาที่อาจเกิดขึ้น",
+                code: `// ตัวอย่าง:\n// public void GetDefaultData()\n// {\n//     ViewBag.Categories = db.Categories.Select(c => new { c.CategoryID, c.Name }).ToList();\n// }`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "other-49",
+                title: "49. การใช้ `HttpPostedFileBase` ใน `CustomerVM` โดยไม่มี `[DataType(DataType.Upload)]`",
+                description: "แอตทริบิวต์ `[DataType(DataType.Upload)]` สามารถให้คำแนะนำเพิ่มเติมแก่ View Engine",
+                impact: "ไม่มีผลกระทบโดยตรงต่อการทำงาน แต่เป็นแนวทางปฏิบัติที่ดี",
+                solution: "เพิ่ม `[DataType(DataType.Upload)]` ให้กับ `HttpPostedFileBase`",
+                code: `[Display(Name = "Picture")]\n[DataType(DataType.Upload)]\npublic HttpPostedFileBase Picture { get; set; }`,
+                codeLanguage: 'csharp'
+            }, {
+                id: "other-50",
+                title: "50. การไม่จัดการ `db.Dispose()` อย่างเหมาะสม",
+                description: "`MyEcommerceDbContext` ถูกสร้างขึ้นภายใน Controller แต่ไม่มีการเรียก `Dispose()`",
+                impact: "Connection Pool อาจไม่ถูกปล่อยคืนอย่างรวดเร็ว",
+                solution: "ใช้ `using` statement กับ `DbContext` หรือใช้ Dependency Injection",
+                code: `// หากไม่ใช้ DI:\n// protected override void Dispose(bool disposing)\n// {\n//     if (disposing) { db.Dispose(); }\n//     base.Dispose(disposing);\n// }`,
+                codeLanguage: 'csharp'
+            }]
+        }];
+
+        const categoryNav = document.getElementById('category-nav');
+        const bugListContainer = document.getElementById('bug-list-container');
+        const searchBar = document.getElementById('search-bar');
+        const welcomeMessage = document.getElementById('welcome-message');
+        let currentBugs = [];
+        let activeCategoryButton = null;
+
+        function renderCategories() {
+            categoryNav.innerHTML = ''; // Clear existing categories
+            const allBugsButton = document.createElement('button');
+            allBugsButton.className = 'w-full text-left px-3 py-2 rounded-md sidebar-item';
+            allBugsButton.textContent = 'แสดงทั้งหมด';
+            allBugsButton.onclick = () => {
+                filterBugsByCategory(null, allBugsButton);
+                welcomeMessage.classList.add('hidden');
+            };
+            categoryNav.appendChild(allBugsButton);
+
+
+            bugData.forEach(category => {
+                const button = document.createElement('button');
+                button.className = 'w-full text-left px-3 py-2 rounded-md sidebar-item';
+                button.textContent = category.categoryName;
+                button.onclick = () => {
+                    filterBugsByCategory(category.categoryName, button);
+                    welcomeMessage.classList.add('hidden');
+                };
+                categoryNav.appendChild(button);
+            });
+        }
+
+        function highlightActiveCategory(buttonElement) {
+            if (activeCategoryButton) {
+                activeCategoryButton.classList.remove('active');
+            }
+            if (buttonElement) {
+                buttonElement.classList.add('active');
+            }
+            activeCategoryButton = buttonElement;
+        }
+
+        function copyToClipboard(text, buttonElement) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                buttonElement.textContent = 'คัดลอกแล้ว!';
+                buttonElement.classList.add('bg-green-500'); // Indicate success
+                setTimeout(() => {
+                    buttonElement.textContent = 'คัดลอกโค้ด';
+                    buttonElement.classList.remove('bg-green-500');
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+                buttonElement.textContent = 'คัดลอกล้มเหลว';
+                setTimeout(() => {
+                    buttonElement.textContent = 'คัดลอกโค้ด';
+                }, 2000);
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function renderBugs(bugsToRender) {
+            bugListContainer.innerHTML = ''; // Clear existing bugs
+            if (bugsToRender.length === 0 && searchBar.value.trim() !== '') {
+                bugListContainer.innerHTML = '<p class="text-slate-500">ไม่พบข้อบกพร่องที่ตรงกับการค้นหาของคุณ</p>';
+                return;
+            }
+            if (bugsToRender.length === 0 && searchBar.value.trim() === '' && !welcomeMessage.classList.contains('hidden')) {
+                // Don't show "ไม่พบข้อบกพร่อง" if it's the initial state or category changed to empty (and welcome isn't hidden by search)
+                // This case might not be strictly necessary if welcome message handles the initial empty state.
+            }
+
+
+            bugsToRender.forEach(bug => {
+                        const bugElement = document.createElement('div');
+                        bugElement.className = 'bg-white p-4 rounded-lg shadow mb-4';
+
+                        const headerButton = document.createElement('button');
+                        headerButton.className = 'w-full text-left flex justify-between items-center font-semibold text-sky-700 hover:text-sky-600 focus:outline-none accordion-header'; // Added accordion-header for potential global close
+                        headerButton.innerHTML = `
+                    <span>${bug.title}</span>
+                    <svg class="w-5 h-5 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                `;
+
+                        const contentElement = document.createElement('div');
+                        contentElement.className = 'mt-3 pt-3 border-t border-slate-200 accordion-content';
+                        contentElement.innerHTML = `
+                    <div class="space-y-3">
+                        <div>
+                            <h4 class="font-medium text-slate-600">คำอธิบาย:</h4>
+                            <p class="text-slate-500 whitespace-pre-wrap">${bug.description}</p>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-slate-600">ผลกระทบ:</h4>
+                            <p class="text-slate-500 whitespace-pre-wrap">${bug.impact}</p>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-slate-600">วิธีแก้ไข:</h4>
+                            <p class="text-slate-500 whitespace-pre-wrap">${bug.solution}</p>
+                        </div>
+                        ${bug.code ? `
+                        <div>
+                            <h4 class="font-medium text-slate-600 mb-1">ตัวอย่างโค้ด:</h4>
+                            <div class="relative">
+                                <button class="absolute top-2 right-2 bg-slate-600 hover:bg-sky-600 text-white text-xs px-2 py-1 rounded copy-code-btn" data-code="${escapeHtml(bug.code)}">คัดลอกโค้ด</button>
+                                <div class="code-block"><pre><code class="language-${bug.codeLanguage || 'plaintext'}">${escapeHtml(bug.code)}</code></pre></div>
+                            </div>
+                        </div>` : ''}
+                    </div>
+                `;
+                
+                headerButton.onclick = () => {
+                    const icon = headerButton.querySelector('svg');
+                    const isExpanded = contentElement.classList.contains('expanded');
+
+                    // Optional: Close all other accordions
+                    // document.querySelectorAll('.accordion-content.expanded').forEach(el => {
+                    //     if (el !== contentElement) {
+                    //        el.classList.remove('expanded');
+                    //        el.previousElementSibling.querySelector('svg').classList.remove('rotate-180');
+                    //     }
+                    // });
+
+                    if (isExpanded) {
+                        contentElement.classList.remove('expanded');
+                        icon.classList.remove('rotate-180');
+                    } else {
+                        contentElement.classList.add('expanded');
+                        icon.classList.add('rotate-180');
+                    }
+                };
+
+                bugElement.appendChild(headerButton);
+                bugElement.appendChild(contentElement);
+                bugListContainer.appendChild(bugElement);
+            });
+            
+            // Add event listeners to copy buttons
+            document.querySelectorAll('.copy-code-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevent accordion from toggling
+                    copyToClipboard(button.dataset.code, button);
+                });
+            });
+        }
+        
+        function escapeHtml(unsafe) {
+            if (typeof unsafe !== 'string') return '';
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
+        function filterBugsByCategory(categoryName, buttonElement) {
+            highlightActiveCategory(buttonElement);
+            if (categoryName === null) { // Show all
+                 currentBugs = bugData.flatMap(cat => cat.bugs);
+            } else {
+                const selectedCategory = bugData.find(cat => cat.categoryName === categoryName);
+                currentBugs = selectedCategory ? selectedCategory.bugs : [];
+            }
+            renderBugs(currentBugs);
+            searchBar.value = ''; // Clear search on category change
+            if (currentBugs.length > 0) {
+                welcomeMessage.classList.add('hidden');
+            } else if (categoryName !== null) { // A specific category was chosen and it's empty
+                welcomeMessage.classList.add('hidden'); // Keep welcome hidden, renderBugs will show "ไม่พบ..."
+            } else { // "Show all" was clicked but bugData is empty or something unexpected
+                welcomeMessage.classList.remove('hidden'); // Or handle appropriately
+            }
+        }
+
+        searchBar.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            let bugsToFilter;
+            
+            welcomeMessage.classList.add('hidden'); // Hide welcome message on search
+
+            // Determine the base set of bugs to filter
+            if (activeCategoryButton && activeCategoryButton.textContent !== 'แสดงทั้งหมด') {
+                // A specific category is active, use its bugs
+                const activeCategoryName = activeCategoryButton.textContent;
+                const selectedCategory = bugData.find(cat => cat.categoryName === activeCategoryName);
+                bugsToFilter = selectedCategory ? selectedCategory.bugs : [];
+
+            } else {
+                // "แสดงทั้งหมด" is active or no category is active yet (search before category click)
+                bugsToFilter = bugData.flatMap(cat => cat.bugs);
+            }
+            
+            if (!searchTerm) {
+                renderBugs(bugsToFilter); // Render current category's bugs or all if "แสดงทั้งหมด" or no category
+                if (bugsToFilter.length === 0 && (!activeCategoryButton || activeCategoryButton.textContent === 'แสดงทั้งหมด') ) {
+                   // If search is cleared and "แสดงทั้งหมด" results in no bugs (or initial state before category selection)
+                   // decide if welcome message should reappear or "ไม่พบข้อบกพร่อง" is fine.
+                   // For simplicity, if search is cleared, rely on category selection to show/hide welcome.
+                   // Or, if you want welcome back when search is cleared and no category active:
+                   // if (!activeCategoryButton) welcomeMessage.classList.remove('hidden');
+                }
+                return;
+            }
+
+            const filtered = bugsToFilter.filter(bug => 
+                bug.title.toLowerCase().includes(searchTerm) ||
+                bug.description.toLowerCase().includes(searchTerm) ||
+                bug.impact.toLowerCase().includes(searchTerm) ||
+                bug.solution.toLowerCase().includes(searchTerm)
+            );
+            renderBugs(filtered);
+        });
+
+        // Initial render
+        renderCategories();
+        renderBugs([]); // Render empty initially, welcome message will be visible by default
+    </script>
+</body>
+
+</html>

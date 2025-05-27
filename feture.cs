@@ -6,13 +6,15 @@
 
 1.  **`GetProductById(int productId)`**: ดึงข้อมูลสินค้าทั้งหมดจาก `ProductID` ที่กำหนด
     ```csharp
-    public Product GetProductById(int productId)
+
+    
+ public Product GetProductById(int productId) // ประกาศเมธอด GetProductById ที่รับค่า productId (เลขรหัสสินค้า) และจะส่งคืนอ็อบเจกต์ Product
+{
+    using (var db = new MyEcommerceDbContext()) // สร้างอินสแตนซ์ของ MyEcommerceDbContext ภายในบล็อก using เพื่อให้แน่ใจว่าการเชื่อมต่อฐานข้อมูลจะถูกปิดอย่างถูกต้องเมื่อใช้งานเสร็จ
     {
-        using (var db = new MyEcommerceDbContext())
-        {
-            return db.Products.FirstOrDefault(p => p.ProductID == productId);
-        }
+        return db.Products.FirstOrDefault(p => p.ProductID == productId); // ค้นหา Product ในตาราง Products โดยใช้ ProductID ที่ตรงกับ productId ที่ส่งเข้ามา และส่งคืน Product ตัวแรกที่พบ ถ้าไม่พบจะคืนค่า null
     }
+}
     ```
 
 2.  **`SearchProducts(string searchTerm)`**: ค้นหาสินค้าจากชื่อ (Name) หรือคำอธิบาย (ShortDescription)
